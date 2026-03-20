@@ -129,23 +129,31 @@ input[type=checkbox]{accent-color:#8b6310;cursor:pointer;}
   <!-- LEFT: all half-line controls -->
   <div id="left">
 
+
     <div class="pttl">Prime Spiral</div>
-    <div class="c" style="flex-direction:column;align-items:flex-start;gap:3px;">
-      <label style="color:#5a4a3a;font-size:9px;">Prime p</label>
-      <select id="primeSelect" style="width:100%;" onchange="onPSelect()"></select>
+    <!-- p controls — hidden when lock is on -->
+    <div id="pControls">
+      <div class="c" style="flex-direction:column;align-items:flex-start;gap:3px;">
+        <label style="color:#5a4a3a;font-size:9px;">Prime p</label>
+        <select id="primeSelect" style="width:100%;" onchange="onPSelect()"></select>
+      </div>
+      <div style="display:flex;gap:3px;margin-top:2px;">
+        <button class="xb" onclick="stepPrime(-1)" style="flex:1;">◀ prev</button>
+        <button class="xb" onclick="stepPrime(1)"  style="flex:1;">next ▶</button>
+        <button class="xb" id="allPrimesBtn" onclick="toggleAllPrimes()" style="flex:1;font-size:8px;">all p</button>
+      </div>
+      <div class="c" style="justify-content:space-between;margin-top:2px;">
+        <label style="color:#5a4a3a;font-size:9px;">p index</label>
+        <span class="cv" id="pSliderV">5</span>
+      </div>
+      <input type="range" id="pSlider" min="1" max="20" value="3" style="width:100%;accent-color:#8b6310;" oninput="onPSlider()">
     </div>
-    <div style="display:flex;gap:3px;margin-top:2px;">
-      <button class="xb" onclick="stepPrime(-1)" style="flex:1;">◀ prev</button>
-      <button class="xb" onclick="stepPrime(1)"  style="flex:1;">next ▶</button>
-      <button class="xb" id="allPrimesBtn" onclick="toggleAllPrimes()" style="flex:1;font-size:8px;" title="Cycle through all primes">all p</button>
+    <!-- when locked, show the current p as read-only -->
+    <div id="pLockedInfo" style="display:none;font-size:9px;color:#5a4a3a;background:#141210;padding:5px 8px;border-radius:2px;line-height:1.8;">
+      p = <span id="pLockedVal" style="color:#e8c96a;font-size:11px;">5</span><br>
+      <span style="color:#3a3020;">set by n index (locked)</span>
     </div>
-    <!-- p slider -->
-    <div class="c" style="justify-content:space-between;margin-top:2px;">
-      <label style="color:#5a4a3a;font-size:9px;">p index</label>
-      <span class="cv" id="pSliderV">5</span>
-    </div>
-    <input type="range" id="pSlider" min="1" max="20" value="3" style="width:100%;accent-color:#8b6310;" oninput="onPSlider()">
-    <div style="display:flex;flex-direction:column;gap:3px;">
+    <div style="display:flex;flex-direction:column;gap:3px;margin-top:4px;">
       <label class="ck"><input type="checkbox" id="showSpiral" checked onchange="onCtrl()"> Prime spiral</label>
       <label class="ck"><input type="checkbox" id="showMirror" checked onchange="onCtrl()"> Mirror M−p</label>
     </div>
@@ -162,7 +170,15 @@ input[type=checkbox]{accent-color:#8b6310;cursor:pointer;}
       <label class="ck"><input type="checkbox" id="showHalf" checked onchange="onCtrl()"> ½ equator line</label>
       <label class="ck"><input type="checkbox" id="showNLines" checked onchange="onCtrl()"> 1/n sector lines</label>
       <label class="ck"><input type="checkbox" id="showRings" checked onchange="onCtrl()"> Ring circles</label>
+      <label class="ck" title="Dim all points not in the active selections (spiral, ±n paths, custom r)">
+        <input type="checkbox" id="dimOthers" onchange="onCtrl()"> Dim non-selected
+      </label>
     </div>
+    <div class="c" style="justify-content:space-between;margin-top:3px;" id="dimRow" style="display:none;">
+      <label style="color:#5a4a3a;font-size:9px;">dim opacity</label>
+      <span class="cv" id="dimAlphaV">0.08</span>
+    </div>
+    <input type="range" id="dimAlpha" min="0.01" max="0.5" value="0.08" step="0.01" style="width:100%;accent-color:#8b6310;" oninput="G('dimAlphaV').textContent=parseFloat(this.value).toFixed(2);onCtrl()">
 
     <div class="pttl">Point Labels</div>
     <label class="ck"><input type="checkbox" id="showLabels" onchange="onCtrl()"> Show labels</label>
@@ -190,12 +206,15 @@ input[type=checkbox]{accent-color:#8b6310;cursor:pointer;}
 
     <div class="pttl">Left-Side Paths (M±n)/2</div>
     <div style="font-size:9px;color:#4a3a2a;margin-bottom:4px;line-height:1.6;">
-      r=(M±n)/2 is valid when M and n have the <b style="color:#8b6310;">same parity</b>.<br>
-      Any n works — odd n pairs with odd M, even n with even M.
+      r=(M±n)/2 valid when M and n have <b style="color:#8b6310;">same parity</b>.
     </div>
     <label class="ck"><input type="checkbox" id="showLeftPath" checked onchange="onCtrl()"> Show ±n paths</label>
-    <div class="c" style="justify-content:space-between;margin-top:4px;">
-      <label style="color:#5a4a3a;font-size:9px;">n offset</label>
+    <!-- lock checkbox -->
+    <label class="ck" style="margin-top:2px;" title="When locked, n slider also sets p = nth prime in M range">
+      <input type="checkbox" id="lockPtoN" onchange="onLockChange()"> Lock: n also sets p
+    </label>
+    <div id="nOffLabel" class="c" style="justify-content:space-between;margin-top:4px;">
+      <label style="color:#5a4a3a;font-size:9px;" id="nSliderLabel">n offset</label>
       <span class="cv" id="nOffV">1</span>
     </div>
     <div style="display:flex;gap:4px;align-items:center;">
@@ -321,6 +340,9 @@ function getP(){
     labelSz:parseInt(V('labelSz'))||9,
     labelFmt:V('labelFmt')||'r',
     labelMaxM:parseInt(V('labelMaxM'))||20,
+    lockPtoN:C('lockPtoN'),
+    dimOthers:C('dimOthers'),
+    dimAlpha:parseFloat(V('dimAlpha'))||0.08,
   };
 }
 
@@ -699,15 +721,49 @@ function drawMirror(p){
 // ALL COPRIME POINTS
 // ════════════════════════════════════════════════════
 function drawAllPoints(p){
-  const {mMax,mode,ptSz,p:prime,customR,showLeftPath,nOff}=p;
-  const skipNPaths=showLeftPath&&!p.showAllN;
+  const {mMax,mode,ptSz,p:prime,customR,showLeftPath,nOff,showAllN,dimOthers,dimAlpha}=p;
+  // Build set of "selected" M:r keys when dimming is on
+  let selectedKeys=null;
+  if(dimOthers){
+    selectedKeys=new Set();
+    // Prime spiral
+    if(p.showSpiral) for(let M=2;M<=mMax;M++) if(gcd(prime,M)===1) selectedKeys.add(`${M}:${prime}`);
+    // Mirror
+    if(p.showMirror) for(let M=2;M<=mMax;M++){const mir=M-prime;if(mir>=1&&mir<M&&gcd(mir,M)===1)selectedKeys.add(`${M}:${mir}`);}
+    // Custom r
+    if(p.showCustom&&customR) for(let M=customR+1;M<=mMax;M++) if(gcd(customR,M)===1) selectedKeys.add(`${M}:${customR}`);
+    // ±n paths
+    if(showLeftPath){
+      const ns=showAllN?[1,3,5,7,9]:[nOff];
+      ns.forEach(n=>{
+        for(let M=n+1;M<=mMax;M++){
+          if((M-n)%2===0&&(M-n)>0){const rLo=(M-n)/2;if(rLo>=1&&gcd(rLo,M)===1)selectedKeys.add(`${M}:${rLo}`);}
+          if((M+n)%2===0){const rHi=(M+n)/2;if(rHi<M&&gcd(rHi,M)===1)selectedKeys.add(`${M}:${rHi}`);}
+        }
+      });
+    }
+  }
+
   rings.forEach(({M,pts})=>pts.forEach(({r,theta})=>{
-    if(r===prime||r===M-prime)return;
-    if(customR&&r===customR)return;
-    if(skipNPaths&&M%2===1&&(r===(M-nOff)/2||r===(M+nOff)/2))return;
+    const key=`${M}:${r}`;
+    const isSelected=selectedKeys?selectedKeys.has(key):true;
+    // Skip points drawn by their own dedicated functions when not dimming
+    if(!dimOthers){
+      if(r===prime||r===M-prime) return;
+      if(customR&&r===customR) return;
+      if(showLeftPath&&!showAllN&&M%2===1&&(r===(M-nOff)/2||r===(M+nOff)/2)) return;
+    }
     const pos=coordFn(M,r);
-    ctx.beginPath();ctx.arc(pos.x,pos.y,ptSz*0.55,0,2*Math.PI);
-    ctx.fillStyle=getColor(mode,r,M,theta);ctx.fill();
+    if(dimOthers&&!isSelected){
+      // Dim: small, grey, low opacity
+      ctx.beginPath();ctx.arc(pos.x,pos.y,ptSz*0.45,0,2*Math.PI);
+      ctx.fillStyle=`rgba(60,55,50,${dimAlpha})`;ctx.fill();
+    } else if(!dimOthers||isSelected){
+      // But don't double-draw the dedicated paths when dimming is off
+      if(!dimOthers&&(r===prime||r===M-prime||( customR&&r===customR))) return;
+      ctx.beginPath();ctx.arc(pos.x,pos.y,ptSz*0.55,0,2*Math.PI);
+      ctx.fillStyle=getColor(mode,r,M,theta);ctx.fill();
+    }
   }));
 }
 
@@ -946,6 +1002,7 @@ function setN(v){
   G('nOff').value=v;
   if(G('nOffNum')) G('nOffNum').value=v;
   if(G('nOffV')) G('nOffV').textContent=v;
+  syncPtoN(v);
   updateFormula(v);
   onCtrl();
 }
@@ -953,6 +1010,7 @@ function onNChange(){
   const n=parseInt(V('nOff'))||1;
   if(G('nOffNum')) G('nOffNum').value=n;
   if(G('nOffV')) G('nOffV').textContent=n;
+  syncPtoN(n);
   updateFormula(n);
   onCtrl();
 }
@@ -962,8 +1020,44 @@ function onNNumChange(){
   G('nOffNum').value=v;
   G('nOff').value=Math.min(v,parseInt(G('nOff').max)||99);
   if(G('nOffV')) G('nOffV').textContent=v;
+  syncPtoN(v);
   updateFormula(v);
   onCtrl();
+}
+
+function onLockChange(){
+  applyLockUI();
+  onCtrl();
+}
+
+function applyLockUI(){
+  const locked=C('lockPtoN');
+  // Show/hide p controls
+  const pc=G('pControls'), pl=G('pLockedInfo');
+  if(pc) pc.style.display=locked?'none':'block';
+  if(pl) pl.style.display=locked?'block':'none';
+  // Relabel n slider
+  const lbl=G('nSliderLabel');
+  if(lbl) lbl.textContent=locked?'n = p-index':'n offset';
+  // When locking, immediately sync p from current n position
+  if(locked) syncPfromN();
+}
+
+function syncPfromN(){
+  // n's current value is treated as a 1-based index into the prime list
+  const n=parseInt(V('nOff'))||1;
+  const ps=primesUpTo(parseInt(V('mMax'))||40);
+  const idx=Math.max(0, Math.min(ps.length-1, n-1));
+  const pv=ps[idx]||ps[0];
+  G('primeSelect').value=pv;
+  if(G('pSlider')){ G('pSlider').value=idx+1; }
+  if(G('pSliderV')) G('pSliderV').textContent=pv;
+  if(G('pLockedVal')) G('pLockedVal').textContent=pv;
+}
+
+function syncPtoN(n){
+  if(!C('lockPtoN')) return;
+  syncPfromN();
 }
 
 // ════════════════════════════════════════════════════
@@ -1207,6 +1301,7 @@ function onMChange(){
   G('mMaxN').value=V('mMax');
   syncNSliderMax();
   updatePrimeSelect();
+  applyLockUI();
   onCtrl();
 }
 function onMNumChange(){
@@ -1218,6 +1313,7 @@ function onMNumChange(){
   slider.value=v;
   syncNSliderMax();
   updatePrimeSelect();
+  applyLockUI();
   onCtrl();
 }
 
@@ -1423,6 +1519,7 @@ window.addEventListener('resize',resize);
 buildPresetButtons();
 syncNSliderMax();
 updatePrimeSelect();
+applyLockUI();
 updateFormula(1);
 resize();
 </script>
