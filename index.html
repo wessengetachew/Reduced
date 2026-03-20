@@ -87,7 +87,7 @@ input[type=checkbox]{accent-color:#8b6310;cursor:pointer;}
   <!-- M range -->
   <div class="c">
     <label>M max</label>
-    <input type="range" id="mMax" min="4" max="150" value="40" oninput="onMChange()">
+    <input type="range" id="mMax" min="4" max="600" value="40" oninput="onMChange()">
     <input type="number" id="mMaxN" value="40" min="4" max="600" oninput="onMNumChange()">
   </div>
   <div class="sep"></div>
@@ -117,6 +117,7 @@ input[type=checkbox]{accent-color:#8b6310;cursor:pointer;}
   <div class="sep"></div>
   <!-- Export -->
   <button class="xb" onclick="doExport()">↓ 4K Export</button>
+  <button class="xb" onclick="exportAll4()" style="border-color:#4a6a4a;color:#88cc88;">↓ All 4 canvases</button>
   <div>
     <input type="text" id="expTitle" value="Modular Ring Explorer" style="background:#0a0a0f;border:1px solid #2a2418;color:#e8c96a;font-family:inherit;font-size:8px;padding:2px 4px;border-radius:2px;width:140px;">
   </div>
@@ -968,87 +969,223 @@ function onNNumChange(){
 // ════════════════════════════════════════════════════
 // EXPORT 4K
 // ════════════════════════════════════════════════════
-function doExport(){
-  const p=getP();
-  const EW=3840,EH=2400,TH=100,FH=36,LW=420;
-  const MW=EW-LW,CH=EH-TH-FH;
-  const ec=document.createElement('canvas');ec.width=EW;ec.height=EH;
-  const ec2=ec.getContext('2d');
-  ec2.fillStyle='#0a0a0f';ec2.fillRect(0,0,EW,EH);
+// ════════════════════════════════════════════════════
+// EXPORT HELPERS
+// ════════════════════════════════════════════════════
+const ARR_DESC={
+  concentric:'Concentric rings  ρ(M) = M  ·  area ∝ M²',
+  fermat:    'Fermat spiral  ρ(M) = √M  ·  annular area = π per step',
+  farey:     'Farey half-plane  (r/M, 1/M)  ·  Ford circle structure',
+  strip:     'Unfolded strip  (M, 2πr/M)  ·  equator at θ = π',
+};
+const COLOR_DESC={
+  angle:'rainbow by angle θ = 2πr/M',
+  prime:'prime rings teal · composite dark',
+  phi:  'φ(M)/M density — bright = dense',
+  lift: 'lift ✓ teal · blocked ✗ red',
+  half: 'top half teal · bottom half orange',
+};
 
-  // Render main canvas at export size
-  const oc=document.createElement('canvas');oc.width=MW;oc.height=CH;
-  const savedW=cv.width,savedH=cv.height;
-  cv.width=MW;cv.height=CH;
-  coordFn=getCoordFn(p.arr,MW,CH,p.mMax);
+function buildLegend(ec2, p, lx, LW, EH){
+  const LP=36, RW=LW-LP-24;
+  let ly=44;
+
+  function rule(){ec2.strokeStyle='#2a2418';ec2.lineWidth=0.5;ec2.beginPath();ec2.moveTo(lx+LP,ly);ec2.lineTo(lx+LP+RW,ly);ec2.stroke();ly+=12;}
+  function sec(t){ec2.font='500 9px "Courier New",monospace';ec2.fillStyle='#8b6310';ec2.textAlign='left';ec2.fillText(t.toUpperCase(),lx+LP,ly);ly+=16;rule();}
+  function dot(col,label,sub){
+    ec2.beginPath();ec2.arc(lx+LP+7,ly-5,7,0,2*Math.PI);ec2.fillStyle=col;ec2.fill();
+    ec2.font='300 12px "Courier New",monospace';ec2.fillStyle='#c8b898';ec2.textAlign='left';
+    ec2.fillText(label,lx+LP+20,ly);
+    if(sub){ec2.font='300 9px "Courier New",monospace';ec2.fillStyle='#5a4a3a';ec2.fillText(sub,lx+LP+20,ly+13);ly+=22;}
+    else{ly+=20;}
+  }
+  function row(k,v,gold=false){
+    ec2.font='300 9px "Courier New",monospace';ec2.fillStyle='#5a4a3a';ec2.textAlign='left';ec2.fillText(k,lx+LP,ly);
+    ec2.font='400 12px "Courier New",monospace';ec2.fillStyle=gold?'#e8c96a':'#9a8878';
+    ec2.fillText(v,lx+LP,ly+14);ly+=32;
+  }
+  function lline(label,col){
+    ec2.fillStyle=col;ec2.fillRect(lx+LP,ly-8,22,3);
+    ec2.font='300 11px "Courier New",monospace';ec2.fillStyle='#9a8878';ec2.textAlign='left';
+    ec2.fillText(label,lx+LP+28,ly);ly+=18;
+  }
+
+  // Title
+  ec2.font='italic 300 26px Georgia,serif';ec2.fillStyle='#e8c96a';ec2.textAlign='left';
+  ec2.fillText('Legend',lx+LP,ly);ly+=32;
+
+  // ── Active color layers (only what's on) ──
+  sec('Active Layers');
+  if(p.showAll) dot(COLOR_DESC[p.mode]?'#6a8a6a':'#4a5a4a', 'All coprime pts', `colored by: ${COLOR_DESC[p.mode]||p.mode}`);
+  if(p.showSpiral){
+    dot('#4ecdc4', `p=${p.p} spiral — TOP half`, 'angle p/M > ½  (M < 2p)');
+    dot('#ff8c69', `p=${p.p} spiral — BOTTOM half`, 'angle p/M < ½  (M > 2p)');
+  }
+  if(p.showMirror) dot('#c9a84c','Mirror M−p','always on ring, gcd(M−p,M)=1');
+  if(p.showCustom&&p.customR){
+    dot('#ff9f69', `Custom r = ${p.customR}`, `path across all M where gcd(${p.customR},M)=1`);
+  }
+  if(p.showLeftPath){
+    dot('#cc88ff',`(M−${p.nOff})/2 lower path`,`lifts iff gcd((M−${p.nOff})/2, M+1) = 1`);
+    dot('#ff4466',`(M+${p.nOff})/2 upper path`,p.nOff===1?'NEVER lifts — permanent barrier':'lifts iff gcd((M+'+p.nOff+')/2, M+1)=1');
+  }
+
+  // ── Lift lines ──
+  if(p.showLifts){
+    ly+=4;
+    lline('Lift line (r lifts to M+1)', `rgba(78,205,150,${Math.min(1,p.liftAlpha*1.5)})`);
+    lline('Blocked (r cannot lift)',    `rgba(200,80,80,${Math.min(1,p.liftAlpha*0.8)})`);
+    ly+=4;
+  }
+
+  // ── Color mode ──
+  if(p.showAll){
+    ly+=4; sec('Color Mode');
+    row('Mode', COLOR_DESC[p.mode]||p.mode);
+  }
+
+  // ── Parameters ──
+  ly+=4; sec('Parameters');
+  row('Arrangement', ARR_DESC[p.arr]||p.arr, true);
+  row('Mod range',   `M = 1 to ${p.mMax}`, true);
+  row('Prime p',     `p = ${p.p}  ·  equator at M = ${2*p.p}`);
+  if(p.showLeftPath) row('n offset', `n = ${p.nOff}  (active on ${p.nOff%2===0?'even':'odd'} M)`);
+  if(p.showCustom&&p.customR) row('Custom r', `r = ${p.customR}`);
+  row('Lift thickness', `${p.liftLW.toFixed(1)}px  ·  opacity ${p.liftAlpha.toFixed(2)}`);
+  row('Point size', `${p.ptSz.toFixed(1)}px`);
+
+  // ── Point counts ──
+  ly+=4; sec('Point Counts');
+  const totalPts = [...coordMap.values()].length;
+  const primePts = p.showSpiral ? [...coordMap.values()].filter(({M,r})=>r===p.p).length : 0;
+  const mirrorPts = p.showMirror ? [...coordMap.values()].filter(({M,r})=>r===M-p.p&&r>=1).length : 0;
+  row('Total coprime pts', `${totalPts.toLocaleString()}  (M = 2 to ${p.mMax})`);
+  if(p.showSpiral) row(`p=${p.p} spiral pts`, `${primePts} rings`);
+  if(p.showMirror) row('Mirror pts', `${mirrorPts}`);
+  if(p.showCustom&&p.customR){
+    const cPts=[...coordMap.values()].filter(({r})=>r===p.customR).length;
+    row(`r=${p.customR} path pts`, `${cPts}`);
+  }
+
+  // ── Theorems (only relevant active ones) ──
+  ly+=4; sec('Relevant Theorems');
+  if(p.showSpiral){
+    row('Thm 8.1 — Equator Gap', `gcd(p,2p)=p  ·  gap at M=${2*p.p}`);
+    row('Thm 8.2 — Mirror Lift', 'gcd(M−p,M+1) = gcd(M−p, p+1)');
+    row('Thm 8.3 — Bottom Sector', `p appears ${p.p-1} times in [${2*p.p+1},${3*p.p}]`);
+  }
+  if(p.showLeftPath&&p.nOff===1){
+    row('Thm 8.4 — Upper Path', '(M+1)/2 NEVER lifts');
+    row('Thm 8.5 — Lower Path', '(M−1)/2 lifts iff M≡3 (mod 4)');
+    row('Cor 8.5a — Gaussian', 'at prime q: lifts iff q inert in Z[i]');
+  }
+  if(p.showLeftPath&&p.nOff>1){
+    row(`Thm 8.5 (n=${p.nOff})`, `gcd((M±${p.nOff})/2, M+1) governs lift`);
+  }
+
+  // Footer
+  ec2.font='300 9px "Courier New",monospace';ec2.fillStyle='#2a2018';ec2.textAlign='left';
+  ec2.fillText('wessengetachew.github.io  ·  2026',lx+LP,EH-16);
+}
+
+function renderToOffscreen(p, W, H){
+  // Render the current view at given size, return a canvas
+  const oc=document.createElement('canvas'); oc.width=W; oc.height=H;
+  const savedW=cv.width, savedH=cv.height;
+  cv.width=W; cv.height=H;
+  coordFn=getCoordFn(p.arr,W,H,p.mMax);
   rings=buildRings(p.mMax);
   coordMap=new Map();
   rings.forEach(({M,pts})=>pts.forEach(({r,theta})=>coordMap.set(`${M}:${r}`,{...coordFn(M,r),M,r,theta})));
-  ctx.fillStyle='#0a0a0f';ctx.fillRect(0,0,MW,CH);
-  drawBackground({...p},MW,CH);
-  if(p.showLifts)drawAllLiftTrajectories({...p,ptSz:p.ptSz*2});
-  if(p.showLeftPath)drawNPaths({...p,ptSz:p.ptSz*2});
-  if(p.showCustom&&p.customR)drawCustomR({...p,ptSz:p.ptSz*2});
-  if(p.showMirror)drawMirror({...p,ptSz:p.ptSz*2});
-  if(p.showAll)drawAllPoints({...p,ptSz:p.ptSz*2});
-  if(p.showSpiral)drawSpiral({...p,ptSz:p.ptSz*2});
-  if(clicked)drawClickedHighlight(clicked,{...p,ptSz:p.ptSz*2});
-  ec2.drawImage(cv,0,TH);
-  cv.width=savedW;cv.height=savedH;
+  const scale=2;
+  ctx.fillStyle='#0a0a0f'; ctx.fillRect(0,0,W,H);
+  drawBackground(p,W,H);
+  if(p.showLifts) drawAllLiftTrajectories({...p,ptSz:p.ptSz*scale});
+  if(p.showLeftPath) drawNPaths({...p,ptSz:p.ptSz*scale});
+  if(p.showCustom&&p.customR) drawCustomR({...p,ptSz:p.ptSz*scale});
+  if(p.showMirror) drawMirror({...p,ptSz:p.ptSz*scale});
+  if(p.showAll) drawAllPoints({...p,ptSz:p.ptSz*scale});
+  if(p.showSpiral) drawSpiral({...p,ptSz:p.ptSz*scale});
+  if(clicked) drawClickedHighlight(clicked,{...p,ptSz:p.ptSz*scale});
+  oc.getContext('2d').drawImage(cv,0,0);
+  cv.width=savedW; cv.height=savedH;
   resize();
+  return oc;
+}
 
-  // Title
-  ec2.fillStyle='rgba(10,10,15,0.97)';ec2.fillRect(0,0,MW,TH);
-  ec2.strokeStyle='#2a2418';ec2.lineWidth=1;ec2.beginPath();ec2.moveTo(0,TH);ec2.lineTo(MW,TH);ec2.stroke();
+function buildExportCanvas(p, title, subtitle){
+  const EW=3840,EH=2400,TH=100,FH=36,LW=440;
+  const MW=EW-LW, CH=EH-TH-FH;
+  const ec=document.createElement('canvas'); ec.width=EW; ec.height=EH;
+  const ec2=ec.getContext('2d');
+  ec2.fillStyle='#0a0a0f'; ec2.fillRect(0,0,EW,EH);
+
+  // Render canvas
+  const oc=renderToOffscreen(p,MW,CH);
+  ec2.drawImage(oc,0,TH);
+
+  // Title bar
+  ec2.fillStyle='rgba(10,10,15,0.97)'; ec2.fillRect(0,0,MW,TH);
+  ec2.strokeStyle='#2a2418'; ec2.lineWidth=1;
+  ec2.beginPath(); ec2.moveTo(0,TH); ec2.lineTo(MW,TH); ec2.stroke();
   ec2.textAlign='center';
-  ec2.font='italic 300 42px Georgia,serif';ec2.fillStyle='#e8c96a';
-  ec2.fillText(V('expTitle')||'Modular Ring Explorer',MW/2,48);
-  const sub=V('expSub')||`M=1–${p.mMax} · p=${p.p} · ${p.arr} arrangement · n=${p.nOff}`;
-  ec2.font='300 16px "Courier New",monospace';ec2.fillStyle='#5a4a3a';ec2.fillText(sub,MW/2,74);
-  const arrDesc={concentric:'ρ(M)=M',fermat:'ρ(M)=√M  [annular area = π per step]',farey:'(r/M, 1/M) Farey half-plane',strip:'(M, 2πr/M) unfolded strip'};
-  ec2.font='300 13px "Courier New",monospace';ec2.fillStyle='#4a4030';ec2.fillText(arrDesc[p.arr]||'',MW/2,94);
+  ec2.font='italic 300 42px Georgia,serif'; ec2.fillStyle='#e8c96a';
+  ec2.fillText(title||V('expTitle')||'Modular Ring Explorer', MW/2, 48);
+  const sub=subtitle||V('expSub')||`M=1–${p.mMax}  ·  p=${p.p}  ·  ${p.arr}  ·  n=${p.nOff}`;
+  ec2.font='300 16px "Courier New",monospace'; ec2.fillStyle='#5a4a3a';
+  ec2.fillText(sub, MW/2, 74);
+  ec2.font='300 13px "Courier New",monospace'; ec2.fillStyle='#3a3020';
+  ec2.fillText(ARR_DESC[p.arr]||'', MW/2, 94);
 
   // Footer
-  ec2.fillStyle='rgba(10,10,15,0.92)';ec2.fillRect(0,EH-FH,EW,FH);
-  ec2.strokeStyle='#2a2418';ec2.lineWidth=1;ec2.beginPath();ec2.moveTo(0,EH-FH);ec2.lineTo(EW,EH-FH);ec2.stroke();
-  ec2.font='300 11px "Courier New",monospace';ec2.fillStyle='#3a3020';ec2.textAlign='center';
-  ec2.fillText('wessengetachew.github.io  ·  2026',EW/2,EH-10);
+  ec2.fillStyle='rgba(10,10,15,0.92)'; ec2.fillRect(0,EH-FH,EW,FH);
+  ec2.strokeStyle='#2a2418'; ec2.lineWidth=1;
+  ec2.beginPath(); ec2.moveTo(0,EH-FH); ec2.lineTo(EW,EH-FH); ec2.stroke();
+  ec2.font='300 11px "Courier New",monospace'; ec2.fillStyle='#3a3020'; ec2.textAlign='center';
+  ec2.fillText('wessengetachew.github.io  ·  2026', EW/2, EH-10);
 
   // Legend panel
   const lx=MW;
-  ec2.fillStyle='#0d0c0a';ec2.fillRect(lx,0,LW,EH);
-  ec2.strokeStyle='#2a2418';ec2.lineWidth=1;ec2.beginPath();ec2.moveTo(lx,0);ec2.lineTo(lx,EH);ec2.stroke();
-  const LP=32;let ly=44;
-  function lTt(t){ec2.font='500 9px "Courier New",monospace';ec2.fillStyle='#8b6310';ec2.textAlign='left';ec2.fillText(t.toUpperCase(),lx+LP,ly);ly+=18;ec2.strokeStyle='#2a2418';ec2.lineWidth=0.5;ec2.beginPath();ec2.moveTo(lx+LP,ly);ec2.lineTo(lx+LP+LW-LP-20,ly);ec2.stroke();ly+=12;}
-  function lDt(col,label){ec2.beginPath();ec2.arc(lx+LP+6,ly-4,6,0,2*Math.PI);ec2.fillStyle=col;ec2.fill();ec2.font='300 11px "Courier New",monospace';ec2.fillStyle='#9a8878';ec2.textAlign='left';ec2.fillText(label,lx+LP+18,ly);ly+=19;}
-  function lRt(k,v){ec2.font='300 9px "Courier New",monospace';ec2.fillStyle='#5a4a3a';ec2.textAlign='left';ec2.fillText(k,lx+LP,ly);ec2.fillStyle='#a09080';ec2.font='400 11px "Courier New",monospace';ec2.fillText(v,lx+LP,ly+13);ly+=30;}
+  ec2.fillStyle='#0d0c0a'; ec2.fillRect(lx,0,LW,EH);
+  ec2.strokeStyle='#2a2418'; ec2.lineWidth=1;
+  ec2.beginPath(); ec2.moveTo(lx,0); ec2.lineTo(lx,EH); ec2.stroke();
+  buildLegend(ec2, p, lx, LW, EH);
 
-  ec2.font='italic 300 24px Georgia,serif';ec2.fillStyle='#e8c96a';ec2.textAlign='left';ec2.fillText('Legend',lx+LP,ly);ly+=28;
-  lTt('Colors');
-  lDt('#4a5a4a','Coprime pt gcd(r,M)=1');
-  lDt('#4ecdc4',`p=${p.p} TOP (p/M>½)`);
-  lDt('#ff8c69',`p=${p.p} BOTTOM (p/M<½)`);
-  lDt('#c9a84c','Mirror M−p');
-  lDt('#ff9f69',`Custom r=${p.customR||'—'}`);
-  lDt('#cc88ff',`(M−${p.nOff})/2 lower`);
-  lDt('#ff4466',`(M+${p.nOff})/2 upper${p.nOff===1?' NEVER lifts':''}`);
-  ly+=6;lTt('Parameters');
-  lRt('Arrangement',arrDesc[p.arr]||p.arr);
-  lRt('Mod range',`M = 1 to ${p.mMax}`);
-  lRt('Prime',`p = ${p.p}`);
-  lRt('Equator crossing',`M = 2p = ${2*p.p}`);
-  lRt('n offset',`n = ${p.nOff}`);
-  ly+=6;lTt('Key Theorems §8');
-  lRt('8.1 Equator Gap','gcd(p,2p)=p>1 · gap width=1');
-  lRt('8.2 Mirror Lift','gcd(M−p,M+1)=gcd(M−p,p+1)');
-  lRt('8.3 Bottom Sector',`p appears p−1=${p.p-1} times in [2p+1,3p]`);
-  lRt('8.4 Upper Path','(M+1)/2 NEVER lifts');
-  lRt('8.5 Lower Path','(M−1)/2 lifts iff M≡3(mod 4)');
-  lRt('Cor 8.5a Z[i]','at prime q: lifts iff q inert in Z[i]');
-  ec2.font='300 9px "Courier New",monospace';ec2.fillStyle='#2a2018';ec2.textAlign='left';
-  ec2.fillText('wessengetachew.github.io · 2026',lx+LP,EH-16);
+  return ec;
+}
 
-  const a=document.createElement('a');a.download=`rings_${p.arr}_M${p.mMax}_p${p.p}_4K.png`;a.href=ec.toDataURL('image/png');a.click();
+function doExport(){
+  const p=getP();
+  const ec=buildExportCanvas(p);
+  const a=document.createElement('a');
+  a.download=`rings_${p.arr}_M${p.mMax}_p${p.p}_n${p.nOff}_4K.png`;
+  a.href=ec.toDataURL('image/png'); a.click();
+}
+
+function exportAll4(){
+  const p=getP();
+  const arrs=['concentric','fermat','farey','strip'];
+  const titles={
+    concentric:'Modular Ring Explorer — Concentric',
+    fermat:    'Modular Ring Explorer — Fermat Spiral (unit area π)',
+    farey:     'Modular Ring Explorer — Farey Half-Plane',
+    strip:     'Modular Ring Explorer — Unfolded Strip',
+  };
+  // Show progress
+  if(G('animStatus')) G('animStatus').textContent='Exporting all 4 canvases…';
+  let i=0;
+  function next(){
+    if(i>=arrs.length){ if(G('animStatus')) G('animStatus').textContent='All 4 exported ✓'; return; }
+    const arr=arrs[i];
+    const ep={...p, arr};
+    const ec=buildExportCanvas(ep, titles[arr]);
+    const a=document.createElement('a');
+    a.download=`rings_${arr}_M${p.mMax}_p${p.p}_n${p.nOff}_4K.png`;
+    a.href=ec.toDataURL('image/png'); a.click();
+    i++;
+    setTimeout(next, 800); // small delay between downloads
+  }
+  next();
 }
 
 // ════════════════════════════════════════════════════
@@ -1074,7 +1211,11 @@ function onMChange(){
 }
 function onMNumChange(){
   const v=Math.max(4,Math.min(600,parseInt(V('mMaxN'))||40));
-  G('mMax').value=Math.min(v,150);
+  G('mMaxN').value=v;
+  // Expand slider max if needed so it can represent this value
+  const slider=G('mMax');
+  if(v>parseInt(slider.max)) slider.max=v;
+  slider.value=v;
   syncNSliderMax();
   updatePrimeSelect();
   onCtrl();
