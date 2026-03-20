@@ -3,566 +3,899 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>The Half-Line Observation</title>
+<title>Modular Ring Explorer</title>
 <style>
-* { box-sizing: border-box; margin: 0; padding: 0; }
-body { background: #0a0a0f; color: #d0c8b8; font-family: 'JetBrains Mono', monospace; font-size: 13px; }
-canvas { display: block; }
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:#0a0a0f;color:#d0c8b8;font-family:'JetBrains Mono',monospace;font-size:11px;overflow:hidden;height:100vh;display:flex;flex-direction:column;}
 
-#app { display: grid; grid-template-columns: 280px 1fr 280px; height: 100vh; gap: 0; }
+/* ── Header ── */
+#hdr{display:flex;align-items:center;justify-content:space-between;padding:7px 16px;background:#0d0c0a;border-bottom:1px solid #2a2418;flex-shrink:0;}
+#hdr h1{font-size:11px;color:#e8c96a;letter-spacing:0.1em;font-weight:400;}
 
-/* LEFT PANEL */
-#left {
-  background: #0f0e0c;
-  border-right: 1px solid #2a2418;
-  padding: 16px 14px;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-.panel-title {
-  font-size: 9px; letter-spacing: 0.2em; text-transform: uppercase;
-  color: #8b6310; border-bottom: 1px solid #2a2418; padding-bottom: 8px;
-}
-.ctrl-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
-.ctrl-row label { color: #7a6a5a; font-size: 11px; }
-.ctrl-row .val { color: #e8c96a; font-size: 11px; }
-input[type=range] { width: 100%; accent-color: #8b6310; margin: 2px 0 8px; }
-select, input[type=number] {
-  background: #181614; border: 1px solid #2a2418; color: #c8b898;
-  font-family: inherit; font-size: 11px; padding: 4px 6px; border-radius: 2px; width: 100%;
-}
-.btn {
-  background: #181614; border: 1px solid #2a2418; color: #a09888;
-  font-family: inherit; font-size: 10px; padding: 4px 10px; border-radius: 2px;
-  cursor: pointer; letter-spacing: 0.06em;
-}
-.btn:hover { border-color: #8b6310; color: #e8c96a; }
-.btn.active { background: #1e1a10; border-color: #c49b38; color: #e8c96a; }
+/* ── Control bar ── */
+#ctrl{display:flex;gap:8px;padding:5px 16px;background:#0a0a0f;border-bottom:1px solid #1a1810;flex-wrap:wrap;align-items:center;flex-shrink:0;}
+.c{display:flex;align-items:center;gap:4px;}
+.c label{color:#5a4a3a;font-size:9px;white-space:nowrap;}
+.cv{color:#e8c96a;font-size:9px;min-width:20px;}
+input[type=range]{accent-color:#8b6310;width:75px;cursor:pointer;}
+input[type=number]{background:#181614;border:1px solid #2a2418;color:#e8c96a;font-family:inherit;font-size:9px;padding:2px 3px;border-radius:2px;width:46px;}
+select{background:#181614;border:1px solid #2a2418;color:#c8b898;font-family:inherit;font-size:9px;padding:2px 4px;border-radius:2px;}
+input[type=checkbox]{accent-color:#8b6310;cursor:pointer;}
+.sep{width:1px;height:13px;background:#2a2418;flex-shrink:0;}
+.xb{background:#181614;border:1px solid #8b6310;color:#e8c96a;font-family:inherit;font-size:9px;padding:3px 8px;border-radius:2px;cursor:pointer;}
+.xb:hover{background:#1e1a10;}
 
-.legend-box {
-  background: #141210; border: 1px solid #2a2418; border-radius: 2px;
-  padding: 10px 12px; font-size: 10px; line-height: 2.0;
-}
-.dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; vertical-align: middle; }
-.line-swatch { display: inline-block; width: 20px; height: 2px; margin-right: 6px; vertical-align: middle; }
+/* ── Arrangement dropdown ── */
+#arrSel{background:#181614;border:1px solid #c49b38;color:#e8c96a;font-family:inherit;font-size:9px;padding:2px 5px;border-radius:2px;font-weight:500;}
 
-/* CENTER */
-#center { position: relative; background: #0a0a0f; }
-#main-canvas { width: 100%; height: 100%; }
-#label-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
+/* ── Main body: left panel + canvas + right panel ── */
+#body{display:flex;flex:1;overflow:hidden;}
 
-/* RIGHT PANEL */
-#right {
-  background: #0f0e0c;
-  border-left: 1px solid #2a2418;
-  padding: 16px 14px;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-.obs-box {
-  background: #141210; border-left: 2px solid #8b6310;
-  padding: 10px 12px; font-size: 11px; line-height: 1.8; color: #9a8878;
-}
-.obs-box .title { color: #e8c96a; font-size: 9px; letter-spacing: 0.15em; text-transform: uppercase; margin-bottom: 6px; }
-.obs-box b { color: #c8b898; }
-.math { background: #0a0a0f; border: 1px solid #1e1c14; padding: 6px 10px; font-size: 11px; color: #e8c96a; margin: 6px 0; letter-spacing: 0.04em; }
-.ring-table { font-size: 10px; line-height: 2.0; }
-.ring-table .top { color: #4ecdc4; }
-.ring-table .bot { color: #ff8c69; }
-.ring-table .gap { color: #555; }
+/* ── Left panel ── */
+#left{width:230px;min-width:200px;background:#0d0c0a;border-right:1px solid #2a2418;overflow-y:auto;padding:10px;display:flex;flex-direction:column;gap:8px;flex-shrink:0;}
+.pttl{font-size:8px;letter-spacing:0.16em;text-transform:uppercase;color:#8b6310;border-bottom:1px solid #2a2418;padding-bottom:5px;margin-bottom:2px;}
+.ck{cursor:pointer;color:#5a4a3a;font-size:10px;display:flex;align-items:center;gap:4px;}
+.ck input{accent-color:#8b6310;}
+.obs{background:#141210;border-left:2px solid #8b6310;padding:6px 8px;font-size:9px;line-height:1.7;color:#9a8878;}
+.obs .ot{color:#e8c96a;font-size:7px;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:3px;}
+.obs b{color:#c8b898;}
+.mf{background:#0a0a0f;border:1px solid #1e1c14;padding:3px 7px;font-size:9px;color:#e8c96a;margin:3px 0;letter-spacing:0.03em;}
+.nb{display:flex;gap:3px;flex-wrap:wrap;}
+.nb button{background:#181614;border:1px solid #2a2418;color:#a09888;font-family:inherit;font-size:8px;padding:2px 6px;border-radius:2px;cursor:pointer;}
+.nb button:hover{border-color:#8b6310;color:#e8c96a;}
+
+/* ── Canvas center ── */
+#center{flex:1;position:relative;background:#0a0a0f;overflow:hidden;}
+#cv{display:block;}
+/* Tooltip */
+#tip{position:absolute;background:rgba(10,10,15,0.92);border:1px solid #8b6310;padding:5px 8px;font-size:9px;color:#e8c96a;pointer-events:none;display:none;border-radius:2px;max-width:180px;line-height:1.6;}
+
+/* ── Right panel ── */
+#right{width:210px;min-width:180px;background:#0d0c0a;border-left:1px solid #2a2418;overflow-y:auto;padding:10px;display:flex;flex-direction:column;gap:8px;flex-shrink:0;}
+.rt{font-size:9px;line-height:1.9;}
+.rt .tp{color:#4ecdc4;}
+.rt .bt{color:#ff8c69;}
+.rt .gp{color:#444;}
+/* Legend dots */
+.dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:4px;vertical-align:middle;}
+.ln{display:inline-block;width:16px;height:2px;margin-right:4px;vertical-align:middle;}
 </style>
 </head>
 <body>
-<div id="app">
 
-  <!-- LEFT CONTROLS -->
+<!-- Header -->
+<div id="hdr">
+  <div>
+    <h1>Modular Ring Explorer — (Z/MZ)*</h1>
+    <div style="font-size:8px;color:#4a3a2a;margin-top:1px;">Four arrangements · Half-line geometry · Prime spiral theorems · Click any point to inspect</div>
+  </div>
+  <div style="font-size:8px;color:#3a3020;">wessengetachew.github.io · 2026</div>
+</div>
+
+<!-- Control bar -->
+<div id="ctrl">
+  <!-- Arrangement picker -->
+  <div class="c">
+    <label>View</label>
+    <select id="arrSel" onchange="onCtrl()">
+      <option value="concentric">Concentric  ρ=M</option>
+      <option value="fermat">Fermat Spiral  ρ=√M  ★π</option>
+      <option value="farey">Farey Half-Plane</option>
+      <option value="strip">Unfolded Strip</option>
+    </select>
+  </div>
+  <div class="sep"></div>
+  <!-- M range -->
+  <div class="c">
+    <label>M max</label>
+    <input type="range" id="mMax" min="4" max="150" value="40" oninput="onMChange()">
+    <input type="number" id="mMaxN" value="40" min="4" max="600" oninput="onMNumChange()">
+  </div>
+  <div class="sep"></div>
+  <!-- Point size -->
+  <div class="c">
+    <label>pt</label>
+    <input type="range" id="ptSz" min="0.5" max="8" value="2.5" step="0.5" oninput="onCtrl()">
+    <span class="cv" id="ptSzV">2.5</span>
+  </div>
+  <div class="sep"></div>
+  <!-- Color mode -->
+  <div class="c">
+    <label>Color</label>
+    <select id="colorMode" onchange="onCtrl()">
+      <option value="angle">Angle</option>
+      <option value="prime">Prime ring</option>
+      <option value="phi">φ/M density</option>
+      <option value="lift">Lift ✓/✗</option>
+      <option value="half">Top/Bottom</option>
+    </select>
+  </div>
+  <div class="sep"></div>
+  <!-- Lift lines -->
+  <div class="c"><label><input type="checkbox" id="showLifts" checked onchange="onCtrl()"> Lift lines</label></div>
+  <!-- Area shading -->
+  <div class="c"><label><input type="checkbox" id="showArea" checked onchange="onCtrl()"> Area shading</label></div>
+  <div class="sep"></div>
+  <!-- Export -->
+  <button class="xb" onclick="doExport()">↓ 4K Export</button>
+  <div>
+    <input type="text" id="expTitle" value="Modular Ring Explorer" style="background:#0a0a0f;border:1px solid #2a2418;color:#e8c96a;font-family:inherit;font-size:8px;padding:2px 4px;border-radius:2px;width:140px;">
+  </div>
+</div>
+
+<!-- Main body -->
+<div id="body">
+
+  <!-- LEFT: all half-line controls -->
   <div id="left">
-    <div class="panel-title">Controls</div>
 
-    <div>
-      <div class="ctrl-row"><label>Mod range M =</label><span class="val" id="mMaxVal">1 – 30</span></div>
-      <input type="range" id="mMax" min="8" max="300" value="30" step="1">
-      <input type="number" id="mMaxNum" value="30" min="8" max="300"
-        style="width:100%;margin-top:4px;background:#181614;border:1px solid #2a2418;color:#e8c96a;font-family:inherit;font-size:11px;padding:4px 6px;border-radius:2px;">
+    <div class="pttl">Prime Spiral</div>
+    <div class="c" style="flex-direction:column;align-items:flex-start;gap:3px;">
+      <label style="color:#5a4a3a;font-size:9px;">Prime p</label>
+      <select id="primeSelect" style="width:100%;" onchange="onPSelect()"></select>
+    </div>
+    <!-- p slider -->
+    <div class="c" style="justify-content:space-between;">
+      <label style="color:#5a4a3a;font-size:9px;">p slider</label>
+      <span class="cv" id="pSliderV">5</span>
+    </div>
+    <input type="range" id="pSlider" min="1" max="20" value="3" style="width:100%;accent-color:#8b6310;" oninput="onPSlider()">
+    <div style="display:flex;flex-direction:column;gap:3px;">
+      <label class="ck"><input type="checkbox" id="showSpiral" checked onchange="onCtrl()"> Prime spiral</label>
+      <label class="ck"><input type="checkbox" id="showMirror" checked onchange="onCtrl()"> Mirror M−p</label>
     </div>
 
-    <div>
-      <div class="ctrl-row"><label>Highlight prime p</label></div>
-      <select id="primeSelect">
-        <option value="2">p = 2</option>
-        <option value="3">p = 3</option>
-        <option value="5" selected>p = 5</option>
-        <option value="7">p = 7</option>
-        <option value="11">p = 11</option>
-        <option value="13">p = 13</option>
-        <option value="17">p = 17</option>
-        <option value="19">p = 19</option>
-        <option value="23">p = 23</option>
-        <option value="29">p = 29</option>
-        <option value="31">p = 31</option>
-        <option value="37">p = 37</option>
-        <option value="41">p = 41</option>
-        <option value="43">p = 43</option>
-        <option value="47">p = 47</option>
-      </select>
+    <div class="pttl">Custom Residue</div>
+    <div class="c" style="flex-direction:column;align-items:flex-start;gap:3px;">
+      <input type="number" id="customR" placeholder="any r" style="width:100%;background:#181614;border:1px solid #2a2418;color:#ff9f69;font-family:inherit;font-size:10px;padding:3px 5px;border-radius:2px;" oninput="onCtrl()">
+      <label class="ck"><input type="checkbox" id="showCustom" checked onchange="onCtrl()"> Show r path</label>
     </div>
 
-    <div>
-      <div class="ctrl-row"><label>Custom residue r</label></div>
-      <input type="number" id="customR" value="" min="1" placeholder="any r (optional)"
-        style="width:100%;background:#181614;border:1px solid #2a2418;color:#ff9f69;font-family:inherit;font-size:11px;padding:4px 6px;border-radius:2px;">
-      <div style="font-size:9px;color:#5a4a3a;margin-top:3px;">Tracks r on every ring where gcd(r,M)=1</div>
+    <div class="pttl">Display</div>
+    <div style="display:flex;flex-direction:column;gap:3px;">
+      <label class="ck"><input type="checkbox" id="showAll" checked onchange="onCtrl()"> All coprime pts</label>
+      <label class="ck"><input type="checkbox" id="showHalf" checked onchange="onCtrl()"> ½ equator line</label>
+      <label class="ck"><input type="checkbox" id="showNLines" checked onchange="onCtrl()"> 1/n sector lines</label>
+      <label class="ck"><input type="checkbox" id="showRings" checked onchange="onCtrl()"> Ring circles</label>
+      <label class="ck"><input type="checkbox" id="showLabels" onchange="onCtrl()"> Point labels (all)</label>
     </div>
 
-    <div>
-      <div class="ctrl-row"><label>Show</label></div>
-      <div style="display:flex;flex-direction:column;gap:4px;">
-        <label style="cursor:pointer;color:#7a6a5a;font-size:11px;"><input type="checkbox" id="showAll" checked> All coprime points</label>
-        <label style="cursor:pointer;color:#7a6a5a;font-size:11px;"><input type="checkbox" id="showSpiral" checked> Prime spiral</label>
-        <label style="cursor:pointer;color:#7a6a5a;font-size:11px;"><input type="checkbox" id="showMirror" checked> Mirror spiral (M−p)</label>
-        <label style="cursor:pointer;color:#7a6a5a;font-size:11px;"><input type="checkbox" id="showCustom" checked> Custom r path</label>
-        <label style="cursor:pointer;color:#7a6a5a;font-size:11px;"><input type="checkbox" id="showLeftPath" checked> Left-side paths (M±1)/2</label>
-        <label style="cursor:pointer;color:#7a6a5a;font-size:11px;"><input type="checkbox" id="showHalf" checked> 1/2 line (equator)</label>
-        <label style="cursor:pointer;color:#7a6a5a;font-size:11px;"><input type="checkbox" id="showNLines" checked> 1/n sector lines</label>
-        <label style="cursor:pointer;color:#7a6a5a;font-size:11px;"><input type="checkbox" id="showRings" checked> Ring circles</label>
-        <label style="cursor:pointer;color:#7a6a5a;font-size:11px;"><input type="checkbox" id="showLifts" checked> Lift connections</label>
-      </div>
+    <div class="pttl">Left-Side Paths (M±n)/2</div>
+    <label class="ck"><input type="checkbox" id="showLeftPath" checked onchange="onCtrl()"> Show ±n paths</label>
+    <div class="c" style="justify-content:space-between;">
+      <label style="color:#5a4a3a;font-size:9px;">n offset</label>
+      <span class="cv" id="nOffV">1</span>
     </div>
-
-    <!-- ±n/2 SLIDER SECTION -->
-    <div style="background:#141210;border:1px solid #2a2418;border-radius:2px;padding:10px 12px;">
-      <div class="panel-title" style="margin-bottom:10px;">Left-Side Paths (M±n)/2</div>
-      <div style="font-size:9px;color:#5a4a3a;margin-bottom:8px;line-height:1.6;">
-        Track r = (M+n)/2 and r = (M−n)/2 for odd M+n.<br>
-        n=1: the equator-approaching paths.<br>
-        n=3,5,7…: paths offset by n steps inward.
-      </div>
-      <label style="cursor:pointer;color:#7a6a5a;font-size:11px;display:flex;align-items:center;gap:6px;margin-bottom:8px;">
-        <input type="checkbox" id="showLeftPath" checked> Show ±n paths
-      </label>
-      <div class="ctrl-row">
-        <label>n offset</label>
-        <span class="val" id="nOffsetVal">1</span>
-      </div>
-      <input type="range" id="nOffset" min="1" max="20" value="1" step="2">
-      <div style="display:flex;gap:4px;margin-top:4px;flex-wrap:wrap;">
-        <button class="btn" onclick="setN(1)">n=1</button>
-        <button class="btn" onclick="setN(3)">n=3</button>
-        <button class="btn" onclick="setN(5)">n=5</button>
-        <button class="btn" onclick="setN(7)">n=7</button>
-        <button class="btn" onclick="setN(9)">n=9</button>
-      </div>
-      <!-- Show multiple paths at once -->
-      <label style="cursor:pointer;color:#7a6a5a;font-size:11px;display:flex;align-items:center;gap:6px;margin-top:8px;">
-        <input type="checkbox" id="showAllN"> Show n=1,3,5,7,9 all at once
-      </label>
-      <!-- Live formula display -->
-      <div id="nFormula" style="margin-top:8px;font-size:10px;color:#e8c96a;line-height:1.8;background:#0a0a0f;padding:6px 8px;border-radius:2px;"></div>
+    <input type="range" id="nOff" min="1" max="20" value="1" step="2" style="width:100%;accent-color:#8b6310;" oninput="onNChange()">
+    <div class="nb">
+      <button onclick="setN(1)">n=1</button>
+      <button onclick="setN(3)">n=3</button>
+      <button onclick="setN(5)">n=5</button>
+      <button onclick="setN(7)">n=7</button>
+      <button onclick="setN(9)">n=9</button>
     </div>
+    <label class="ck"><input type="checkbox" id="showAllN" onchange="onCtrl()"> All n=1,3,5,7,9</label>
+    <div id="nFormula" style="font-size:9px;color:#e8c96a;line-height:1.7;background:#0a0a0f;padding:4px 6px;border-radius:2px;margin-top:2px;"></div>
 
-    <div>
-      <div class="ctrl-row"><label>Point size</label><span class="val" id="ptSzVal">3</span></div>
-      <input type="range" id="ptSz" min="1" max="8" value="3" step="0.5">
-    </div>
+    <div class="pttl">Export Details</div>
+    <input type="text" id="expSub" placeholder="Subtitle" style="width:100%;background:#0a0a0f;border:1px solid #2a2418;color:#9a8878;font-family:inherit;font-size:9px;padding:3px 5px;border-radius:2px;">
 
-    <div class="legend-box">
-      <div class="panel-title" style="margin-bottom:8px;">Legend</div>
-      <div><span class="dot" style="background:#4a5a4a;"></span>Coprime point (gcd=1)</div>
-      <div><span class="dot" style="background:#4ecdc4;"></span>Prime p — TOP half</div>
-      <div><span class="dot" style="background:#ff8c69;"></span>Prime p — BOTTOM half</div>
-      <div><span class="dot" style="background:#e8c96a;"></span>Mirror M−p</div>
-      <div><span class="dot" style="background:#ff9f69;"></span>Custom r path</div>
-      <div><span class="dot" style="background:#cc88ff;"></span>(M−n)/2 — lower path</div>
-      <div><span class="dot" style="background:#ff4466;"></span>(M+n)/2 — upper path</div>
-      <div style="font-size:9px;color:#555;margin-top:4px;">n=1 upper never lifts.<br>Other n have richer patterns.</div>
-      <div><span class="line-swatch" style="background:#4444aa;"></span>1/2 equator</div>
-      <div><span class="line-swatch" style="background:#2a3a2a;"></span>1/n sector lines</div>
+    <div class="pttl">Legend</div>
+    <div style="font-size:9px;line-height:2.0;">
+      <div><span class="dot" style="background:#4a5a4a;"></span>gcd(r,M)=1</div>
+      <div><span class="dot" style="background:#4ecdc4;"></span>p TOP (p/M>½)</div>
+      <div><span class="dot" style="background:#ff8c69;"></span>p BOTTOM (p/M&lt;½)</div>
+      <div><span class="dot" style="background:#c9a84c;"></span>Mirror M−p</div>
+      <div><span class="dot" style="background:#ff9f69;"></span>Custom r</div>
+      <div><span class="dot" style="background:#cc88ff;"></span>(M−n)/2 lower</div>
+      <div><span class="dot" style="background:#ff4466;"></span>(M+n)/2 upper</div>
+      <div><span class="ln" style="background:rgba(78,205,150,0.6);"></span>Lift line</div>
+      <div><span class="ln" style="background:rgba(200,80,80,0.4);"></span>Blocked</div>
     </div>
   </div>
 
-  <!-- CANVAS -->
+  <!-- CENTER: single full-screen canvas -->
   <div id="center">
-    <canvas id="main-canvas"></canvas>
+    <canvas id="cv"></canvas>
+    <div id="tip"></div>
   </div>
 
-  <!-- RIGHT OBSERVATIONS -->
+  <!-- RIGHT: theorems + inspection table -->
   <div id="right">
-    <div class="panel-title">The Observation</div>
+    <div class="pttl">Theorems §8</div>
+    <div class="obs"><div class="ot">8.1 Equator Gap</div>gcd(p,2p)=p. No prime at angle ½. Gap width=1 ring.</div>
+    <div class="obs"><div class="ot">8.2 Mirror Lift</div><div class="mf">gcd(M−p,M+1)=gcd(M−p,p+1)</div>Mirrors lifting = R(p+1)∩{1…p−1}.<br>Encodes <b>(Z/(p+1)Z)*</b>.</div>
+    <div class="obs"><div class="ot">8.3 Bottom Sector</div>In [2p+1,3p]: exactly <b>p−1 appearances</b>. M mod p covers (Z/pZ)* in order. <b>p−2 lift</b>, unique fail at M=3p−1.</div>
+    <div class="obs"><div class="ot">8.4 Upper Path</div><div class="mf">gcd((M+1)/2,M+1)=(M+1)/2≥2</div><b>Never lifts</b>. Permanent barrier.</div>
+    <div class="obs"><div class="ot">8.5 Lower Path</div><div class="mf">gcd((M−1)/2,M+1)=gcd(…,2)</div>Lifts iff M≡3(mod 4).<br>At prime q: lifts iff <b>q inert in Z[i]</b>.</div>
 
-    <div class="obs-box">
-      <div class="title">Circle Division by 1/n</div>
-      The unit circle is naturally divided by the lines at angles <b>2π/n</b> for each integer n.
-      These are the positions of <b>r = 1</b> on ring n — the universal survivor.
-      Between consecutive 1/n lines, each sector contains a specific set of coprime residues.
-    </div>
+    <div class="pttl" style="margin-top:4px;">Arrangement</div>
+    <div id="arrInfo" style="font-size:9px;color:#5a4a3a;line-height:1.75;"></div>
 
-    <div class="obs-box">
-      <div class="title">Mirror Symmetry</div>
-      For every ring M, R(M) is symmetric under <b>r ↔ M−r</b>:
-      <div class="math">gcd(M−r, M) = gcd(r, M)</div>
-      So the TOP half (r/M &lt; ½) and BOTTOM half (r/M &gt; ½) are exact mirrors.
-      Every coprime point in the top has a partner in the bottom.
-    </div>
+    <div class="pttl" style="margin-top:4px;">Clicked Point</div>
+    <div id="clickInfo" style="font-size:9px;color:#6a5a4a;line-height:1.9;">Click any point to inspect.</div>
 
-    <div class="obs-box">
-      <div class="title">Prime p Crosses the Equator</div>
-      Prime p's spiral traces angle p/M as M increases.
-      <div class="math">p/M = ½  when  M = 2p</div>
-      But at M=2p: gcd(p, 2p) = p &gt; 1 — p is <b>not on ring 2p</b>.
-      The crossing happens in a <b>gap</b>. The spiral jumps the equator invisibly.
-      <div style="margin-top:6px;">
-        <span style="color:#4ecdc4;">■</span> M &lt; 2p: p in TOP half<br>
-        <span style="color:#888;">■</span> M = 2p: GAP (p blocked)<br>
-        <span style="color:#ff8c69;">■</span> M &gt; 2p: p in BOTTOM half
-      </div>
-    </div>
-
-    <div class="obs-box">
-      <div class="title">The Mirror is Always Valid</div>
-      When p is in the TOP (M &lt; 2p), its mirror M−p is in the BOTTOM.
-      <div class="math">gcd(M−p, M) = gcd(p, M) = 1</div>
-      since p is prime and M &lt; 2p means p∤M. So <b>M−p is always coprime to M</b> — it always exists on the ring as a valid point.
-      The mirror path traces the bottom half perfectly.
-    </div>
-
-    <div class="obs-box">
-      <div class="title">The Left-Side Inward Pattern</div>
-      The two paths approaching the equator from the left (θ near π):
-      <br><br>
-      <b style="color:#ff4466;">(M+1)/2 path</b> — upper approach, angle just above 1/2.<br>
-      <div class="math">gcd((M+1)/2, M+1) = (M+1)/2 ≠ 1</div>
-      This path <b>never lifts</b>. Every point is blocked because r = (M+1)/2 always divides M+1.
-      <br><br>
-      <b style="color:#cc88ff;">(M-1)/2 path</b> — lower approach, angle just below 1/2.<br>
-      <div class="math">gcd((M-1)/2, M+1) = gcd((M-1)/2, 2)</div>
-      Lifts iff (M-1)/2 is odd, i.e. M ≡ 3 (mod 4). <b>Perfect alternation</b>: lift, block, lift, block…
-    </div>
-
-    <div class="obs-box">
-      <div class="title">What the Left Side Encodes</div>
-      The (M+1)/2 path is the <b>permanent gap boundary</b> — the frontier that no lift can cross coming inward from the left. It marks where the 1/2 constraint becomes absolute.
-      <br><br>
-      The alternating (M-1)/2 path encodes the parity of M: whether M ≡ 1 or 3 (mod 4) determines lift survival. This is related to the <b>Gaussian integers</b> — primes that split vs remain inert in Z[i].
-    </div>
-
-    <div id="spiral-table" class="ring-table"></div>
+    <div class="pttl" id="spiralTitle" style="margin-top:4px;">p Spiral</div>
+    <div id="spiralTable" class="rt"></div>
   </div>
-
 </div>
 
 <script>
-const canvas = document.getElementById('main-canvas');
-const ctx = canvas.getContext('2d');
+// ════════════════════════════════════════════════════
+// HELPERS
+// ════════════════════════════════════════════════════
+function gcd(a,b){while(b){[a,b]=[b,a%b];}return a;}
+function isPrime(n){if(n<2)return false;if(n===2)return true;if(n%2===0)return false;for(let i=3;i*i<=n;i+=2)if(n%i===0)return false;return true;}
+function phi(n){let r=n,t=n;for(let p=2;p*p<=t;p++)if(t%p===0){while(t%p===0)t=Math.floor(t/p);r-=Math.floor(r/p);}if(t>1)r-=Math.floor(r/t);return r;}
+function primesUpTo(n){const s=new Array(n+1).fill(true);s[0]=s[1]=false;for(let i=2;i*i<=n;i++)if(s[i])for(let j=i*i;j<=n;j+=i)s[j]=false;return s.map((_,i)=>i).filter(i=>s[i]);}
 
-function gcd(a,b){ while(b){[a,b]=[b,a%b];} return a; }
-function isPrime(n){ if(n<2)return false; if(n===2)return true; if(n%2===0)return false; for(let i=3;i*i<=n;i+=2)if(n%i===0)return false; return true; }
+// ════════════════════════════════════════════════════
+// STATE
+// ════════════════════════════════════════════════════
+const cv=document.getElementById('cv');
+const ctx=cv.getContext('2d');
+let rings=[], coordMap=new Map(); // coordMap: "M:r" -> {x,y}
+let hovered=null, clicked=null;
 
-function resize(){
-  const c = document.getElementById('center');
-  canvas.width  = c.clientWidth;
-  canvas.height = c.clientHeight;
-  render();
-}
+function G(id){return document.getElementById(id);}
+function V(id){return G(id).value;}
+function C(id){return G(id).checked;}
 
-function getParams(){
-  return {
-    mMax:       parseInt(document.getElementById('mMax').value),
-    p:          parseInt(document.getElementById('primeSelect').value),
-    customR:    parseInt(document.getElementById('customR').value) || null,
-    showAll:    document.getElementById('showAll').checked,
-    showSpiral: document.getElementById('showSpiral').checked,
-    showMirror: document.getElementById('showMirror').checked,
-    showCustom: document.getElementById('showCustom').checked,
-    showLeftPath: document.getElementById('showLeftPath').checked,
-    showAllN:   document.getElementById('showAllN').checked,
-    nOffset:    parseInt(document.getElementById('nOffset').value) || 1,
-    showHalf:   document.getElementById('showHalf').checked,
-    showNLines: document.getElementById('showNLines').checked,
-    showRings:  document.getElementById('showRings').checked,
-    showLifts:  document.getElementById('showLifts').checked,
-    ptSz:       parseFloat(document.getElementById('ptSz').value),
+function getP(){
+  return{
+    arr:V('arrSel'), mMax:parseInt(V('mMax'))||40,
+    ptSz:parseFloat(V('ptSz'))||2.5, mode:V('colorMode'),
+    showLifts:C('showLifts'), showArea:C('showArea'),
+    p:parseInt(V('primeSelect'))||5,
+    customR:parseInt(V('customR'))||null,
+    showAll:C('showAll'), showSpiral:C('showSpiral'),
+    showMirror:C('showMirror'), showCustom:C('showCustom'),
+    showHalf:C('showHalf'), showNLines:C('showNLines'),
+    showRings:C('showRings'), showLabels:C('showLabels'),
+    showLeftPath:C('showLeftPath'), showAllN:C('showAllN'),
+    nOff:parseInt(V('nOff'))||1,
   };
 }
 
-function render(){
-  const {mMax,p,customR,showAll,showSpiral,showMirror,showCustom,showLeftPath,showAllN,nOffset,
-         showHalf,showNLines,showRings,showLifts,ptSz} = getParams();
-  const W=canvas.width, H=canvas.height, cx=W/2, cy=H/2;
-  const scale=Math.min(W,H)/2.2;
-  ctx.clearRect(0,0,W,H);
-  ctx.fillStyle='#0a0a0f'; ctx.fillRect(0,0,W,H);
-
-  function ringR(M){ return (M/mMax)*scale*0.92; }
-  function pt(M,r){
-    const theta=2*Math.PI*r/M, rho=ringR(M);
-    return {x:cx+rho*Math.cos(theta), y:cy-rho*Math.sin(theta)};
-  }
-
-  // 1/n lines
-  if(showNLines){
-    [2,3,4,5,6,7,8,10,12].forEach(n=>{
-      const theta=2*Math.PI/n;
-      ctx.beginPath(); ctx.moveTo(cx,cy);
-      ctx.lineTo(cx+scale*Math.cos(theta)*1.05, cy-scale*Math.sin(theta)*1.05);
-      ctx.strokeStyle='rgba(40,60,40,0.5)'; ctx.lineWidth=0.5;
-      ctx.setLineDash([4,6]); ctx.stroke(); ctx.setLineDash([]);
-      ctx.font='9px monospace'; ctx.fillStyle='#3a5a3a'; ctx.textAlign='center';
-      ctx.fillText(`1/${n}`, cx+scale*0.96*Math.cos(theta), cy-scale*0.96*Math.sin(theta));
-    });
-  }
-
-  // Equator
-  if(showHalf){
-    ctx.beginPath(); ctx.moveTo(cx-scale*1.05,cy); ctx.lineTo(cx+scale*1.05,cy);
-    ctx.strokeStyle='rgba(60,60,160,0.6)'; ctx.lineWidth=1;
-    ctx.setLineDash([8,6]); ctx.stroke(); ctx.setLineDash([]);
-    ctx.font='10px monospace'; ctx.fillStyle='#4444aa'; ctx.textAlign='left';
-    ctx.fillText('½ equator', cx+scale*0.7, cy-6);
-  }
-
-  // Ring circles
-  if(showRings){
-    for(let M=2;M<=mMax;M++){
-      ctx.beginPath(); ctx.arc(cx,cy,ringR(M),0,2*Math.PI);
-      const gap=(M===2*p);
-      ctx.strokeStyle=gap?'rgba(180,60,60,0.5)':'rgba(40,36,28,0.35)';
-      ctx.lineWidth=gap?1.5:0.35; ctx.stroke();
-    }
-    if(2*p<=mMax){
-      ctx.font='9px monospace'; ctx.fillStyle='#aa4444'; ctx.textAlign='left';
-      ctx.fillText(`M=2p=${2*p}`, cx+ringR(2*p)+2, cy-3);
-    }
-  }
-
-  // All coprime (background points)
-  if(showAll){
-    for(let M=2;M<=mMax;M++){
-      for(let r=1;r<M;r++){
-        if(gcd(r,M)!==1) continue;
-        if(r===p||r===M-p) continue;
-        if(customR&&r===customR) continue;
-        if(showLeftPath&&M%2===1&&(r===(M-1)/2||r===(M+1)/2)) continue;
-        const {x,y}=pt(M,r);
-        ctx.beginPath(); ctx.arc(x,y,ptSz*0.5,0,2*Math.PI);
-        ctx.fillStyle='rgba(55,65,50,0.55)'; ctx.fill();
-      }
-    }
-  }
-
-  // Left-side paths (M±n)/2
-  if(showLeftPath){
-    const ns = showAllN
-      ? [1,3,5,7,9]
-      : [nOffset];
-    const hues = [280,200,120,40,320];
-
-    ns.forEach((n, ni) => {
-      const hLo = hues[ni%hues.length];
-      const hHi = (hues[ni%hues.length]+40)%360;
-      let lastLo=null, lastHi=null;
-
-      for(let M=n+1; M<=mMax; M++){
-        // r = (M-n)/2: only valid when M-n is even and positive, i.e. M and n same parity
-        if((M-n)%2===0 && (M-n)>0){
-          const rLo=(M-n)/2;
-          if(rLo>=1 && gcd(rLo,M)===1){
-            const pos=pt(M,rLo), lifts=gcd(rLo,M+1)===1;
-            if(lastLo){
-              ctx.beginPath();ctx.moveTo(lastLo.x,lastLo.y);ctx.lineTo(pos.x,pos.y);
-              ctx.strokeStyle=`hsla(${hLo},70%,60%,0.2)`;ctx.lineWidth=0.8;ctx.stroke();
-            }
-            ctx.beginPath();ctx.arc(pos.x,pos.y,ptSz*0.9,0,2*Math.PI);
-            ctx.fillStyle=lifts?`hsl(${hLo},70%,65%)`:`hsl(${hLo},50%,35%)`;
-            ctx.fill();
-            lastLo=pos;
-          }
-        }
-        // r = (M+n)/2: only valid when M+n is even
-        if((M+n)%2===0){
-          const rHi=(M+n)/2;
-          if(rHi<M && gcd(rHi,M)===1){
-            const pos=pt(M,rHi), lifts=gcd(rHi,M+1)===1;
-            if(lastHi){
-              ctx.beginPath();ctx.moveTo(lastHi.x,lastHi.y);ctx.lineTo(pos.x,pos.y);
-              ctx.strokeStyle=`hsla(${hHi},80%,55%,0.2)`;ctx.lineWidth=0.8;ctx.stroke();
-            }
-            ctx.beginPath();ctx.arc(pos.x,pos.y,ptSz*0.9,0,2*Math.PI);
-            ctx.fillStyle=lifts?`hsl(${hHi},80%,65%)`:`hsl(${hHi},60%,30%)`;
-            ctx.fill();
-            lastHi=pos;
-          }
-        }
-      }
-    });
-  }
-
-  // Lift lines for spiral
-  if(showLifts){
-    let lTop=null,lBot=null,lMir=null;
-    for(let M=2;M<=mMax;M++){
-      if(gcd(p,M)===1){
-        const pos=pt(M,p),top=p/M>0.5;
-        if(top&&lTop){ctx.beginPath();ctx.moveTo(lTop.x,lTop.y);ctx.lineTo(pos.x,pos.y);ctx.strokeStyle='rgba(78,205,196,0.15)';ctx.lineWidth=0.7;ctx.stroke();}
-        if(!top&&lBot){ctx.beginPath();ctx.moveTo(lBot.x,lBot.y);ctx.lineTo(pos.x,pos.y);ctx.strokeStyle='rgba(255,140,105,0.15)';ctx.lineWidth=0.7;ctx.stroke();}
-        if(top)lTop=pos;else lBot=pos;
-      }
-      if(showMirror){
-        const mir=M-p;
-        if(mir>=1&&mir<M&&gcd(mir,M)===1){
-          const mp=pt(M,mir);
-          if(lMir){ctx.beginPath();ctx.moveTo(lMir.x,lMir.y);ctx.lineTo(mp.x,mp.y);ctx.strokeStyle='rgba(232,201,106,0.12)';ctx.lineWidth=0.7;ctx.stroke();}
-          lMir=mp;
-        }
-      }
-    }
-  }
-
-  // Custom r path
-  if(showCustom&&customR&&customR>=1){
-    let lCus=null;
-    for(let M=Math.max(2,customR+1);M<=mMax;M++){
-      if(gcd(customR,M)!==1) continue;
-      const pos=pt(M,customR), lifts=gcd(customR,M+1)===1;
-      if(lCus){ctx.beginPath();ctx.moveTo(lCus.x,lCus.y);ctx.lineTo(pos.x,pos.y);ctx.strokeStyle='rgba(255,159,105,0.3)';ctx.lineWidth=1;ctx.stroke();}
-      ctx.beginPath(); ctx.arc(pos.x,pos.y,ptSz,0,2*Math.PI);
-      ctx.fillStyle=lifts?'#ff9f69':'#884433'; ctx.fill();
-      lCus=pos;
-    }
-    ctx.font='9px monospace'; ctx.fillStyle='#ff9f69'; ctx.textAlign='left';
-    ctx.fillText(`r=${customR}`, cx+scale*0.6, cy+22);
-  }
-
-  // Prime spiral
-  if(showSpiral){
-    for(let M=2;M<=mMax;M++){
-      if(gcd(p,M)!==1) continue;
-      const {x,y}=pt(M,p), top=p/M>0.5;
-      ctx.beginPath(); ctx.arc(x,y,ptSz,0,2*Math.PI);
-      ctx.fillStyle=top?'#4ecdc4':'#ff8c69'; ctx.fill();
-      if(M<=2*p+3&&M>=p+1&&mMax<=80){
-        ctx.font='8px monospace'; ctx.fillStyle=top?'#4ecdc4':'#ff8c69';
-        ctx.textAlign='left'; ctx.fillText(`M=${M}`,x+ptSz+2,y+3);
-      }
-    }
-  }
-
-  // Mirror
-  if(showMirror){
-    for(let M=2;M<=mMax;M++){
-      const mir=M-p;
-      if(mir<1||mir>=M||gcd(mir,M)!==1) continue;
-      const {x,y}=pt(M,mir);
-      ctx.beginPath(); ctx.arc(x,y,ptSz*0.85,0,2*Math.PI);
-      ctx.fillStyle='#c9a84c'; ctx.fill();
-    }
-  }
-
-  // θ=0 line & center
-  ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(cx+scale*1.02,cy);
-  ctx.strokeStyle='rgba(100,80,40,0.4)'; ctx.lineWidth=1; ctx.stroke();
-  ctx.font='9px monospace'; ctx.fillStyle='#6a5a3a'; ctx.textAlign='left';
-  ctx.fillText('θ=0 (M=1, gcd=0)', cx+scale*0.55, cy+13);
-  ctx.beginPath(); ctx.arc(cx,cy,3,0,2*Math.PI); ctx.fillStyle='#555'; ctx.fill();
-
-  updateTable(p,mMax,customR);
+// ════════════════════════════════════════════════════
+// COLOR
+// ════════════════════════════════════════════════════
+function getColor(mode,r,M,theta){
+  if(mode==='angle'){const h=(theta/(2*Math.PI)*360+360)%360;return `hsl(${h},75%,62%)`;}
+  if(mode==='prime')return isPrime(M)?'#4ecdc4':'#383838';
+  if(mode==='phi'){const d=phi(M)/M,L=Math.round(22+d*58);return `hsl(38,65%,${L}%)`;}
+  if(mode==='lift')return gcd(r,M+1)===1?'#4ecdc4':'#cc4444';
+  if(mode==='half')return(r/M>0.5)?'#4ecdc4':'#ff8c69';
+  return '#6a5a4a';
 }
 
-function updateTable(p, mMax, customR){
-  const div=document.getElementById('spiral-table');
-  let html=`<div class="panel-title" style="margin-bottom:8px;">p=${p} · equator M=${2*p}</div>`;
-  const limit=Math.min(mMax,3*p+2);
-  for(let M=p+1;M<=limit;M++){
-    const on=gcd(p,M)===1;
-    const frac=(p/M).toFixed(3);
-    const top=p/M>0.5;
-    const mir=M-p, mirOn=mir>=1&&gcd(mir,M)===1;
-    const mirLifts=mirOn&&gcd(mir,M+1)===1;
-    if(!on){
-      html+=`<div class="gap">M=${M} r/M=${frac} — GAP gcd=${gcd(p,M)}</div>`;
-    } else {
-      const cls=top?'top':'bot';
-      html+=`<div class="${cls}">M=${M} ${frac} ${top?'▲':'▼'} `+
-            `mir=${mir}${mirOn?(mirLifts?' ✓lift':' ✗block'):' ✗off'}</div>`;
+// ════════════════════════════════════════════════════
+// COORDINATE SYSTEMS
+// ════════════════════════════════════════════════════
+let coordFn=null; // set per render
+
+function makeCoordConcentric(W,H,mMax){
+  const cx=W/2,cy=H/2,sc=Math.min(W,H)/2.15/mMax;
+  return (M,r)=>{const t=2*Math.PI*r/M;return{x:cx+M*sc*Math.cos(t),y:cy-M*sc*Math.sin(t)};};
+}
+function makeCoordFermat(W,H,mMax){
+  const cx=W/2,cy=H/2,sc=Math.min(W,H)/2.15/Math.sqrt(mMax);
+  return (M,r)=>{const t=2*Math.PI*r/M,rho=Math.sqrt(M)*sc;return{x:cx+rho*Math.cos(t),y:cy-rho*Math.sin(t)};};
+}
+function makeCoordFarey(W,H,mMax){
+  const pad=30,xSc=W-2*pad,ySc=(H-2*pad)/0.5;
+  return (M,r)=>({x:pad+(r/M)*xSc, y:H-pad-(1/M)*ySc});
+}
+function makeCoordStrip(W,H,mMax){
+  const pad=30,xSc=(W-2*pad)/mMax,ySc=(H-2*pad)/(2*Math.PI);
+  return (M,r)=>({x:pad+M*xSc, y:pad+(2*Math.PI*r/M)*ySc});
+}
+
+function getCoordFn(arr,W,H,mMax){
+  if(arr==='concentric')return makeCoordConcentric(W,H,mMax);
+  if(arr==='fermat')return makeCoordFermat(W,H,mMax);
+  if(arr==='farey')return makeCoordFarey(W,H,mMax);
+  return makeCoordStrip(W,H,mMax);
+}
+
+// ════════════════════════════════════════════════════
+// BUILD RINGS
+// ════════════════════════════════════════════════════
+function buildRings(mMax){
+  const r=[];
+  for(let M=2;M<=mMax;M++){
+    const pts=[];
+    for(let rv=1;rv<M;rv++)if(gcd(rv,M)===1)pts.push({r:rv,M,theta:2*Math.PI*rv/M});
+    r.push({M,pts});
+  }
+  return r;
+}
+
+// ════════════════════════════════════════════════════
+// RENDER
+// ════════════════════════════════════════════════════
+function render(){
+  const p=getP();
+  const W=cv.width,H=cv.height;
+  ctx.fillStyle='#0a0a0f';ctx.fillRect(0,0,W,H);
+  coordFn=getCoordFn(p.arr,W,H,p.mMax);
+  rings=buildRings(p.mMax);
+  coordMap=new Map();
+  rings.forEach(({M,pts})=>pts.forEach(({r,theta})=>{
+    const pos=coordFn(M,r);coordMap.set(`${M}:${r}`,{...pos,M,r,theta});
+  }));
+
+  // ── Background elements ──
+  drawBackground(p,W,H);
+
+  // ── Lift trajectories (drawn before points) ──
+  if(p.showLifts) drawAllLiftTrajectories(p);
+
+  // ── ±n/2 paths ──
+  if(p.showLeftPath) drawNPaths(p);
+
+  // ── Custom r ──
+  if(p.showCustom&&p.customR) drawCustomR(p);
+
+  // ── Mirror ──
+  if(p.showMirror) drawMirror(p);
+
+  // ── All coprime points ──
+  if(p.showAll) drawAllPoints(p);
+
+  // ── Prime spiral (on top) ──
+  if(p.showSpiral) drawSpiral(p);
+
+  // ── Point labels ──
+  if(p.showLabels) drawAllLabels(p);
+
+  // ── Clicked point highlight ──
+  if(clicked) drawClickedHighlight(clicked,p);
+
+  // ── Update sidebar ──
+  updateArrInfo(p);
+  updateSpiralTable(p);
+}
+
+// ════════════════════════════════════════════════════
+// BACKGROUND: rings/lines/annotations per arrangement
+// ════════════════════════════════════════════════════
+function drawBackground(p,W,H){
+  const {arr,mMax,showHalf,showNLines,showRings,showArea,p:prime}=p;
+  const cx=W/2,cy=H/2;
+
+  if(arr==='concentric'||arr==='fermat'){
+    // Rings
+    if(showRings){
+      rings.forEach(({M})=>{
+        let rho;
+        if(arr==='concentric'){const sc=Math.min(W,H)/2.15/mMax;rho=M*sc;}
+        else{const sc=Math.min(W,H)/2.15/Math.sqrt(mMax);rho=Math.sqrt(M)*sc;}
+        ctx.beginPath();ctx.arc(cx,cy,rho,0,2*Math.PI);
+        const gap=(M===2*prime);
+        ctx.strokeStyle=gap?'rgba(180,60,60,0.6)':isPrime(M)?'rgba(78,205,196,0.15)':'rgba(40,36,28,0.35)';
+        ctx.lineWidth=gap?1.5:isPrime(M)?0.5:0.3;ctx.stroke();
+      });
+      if(2*prime<=mMax){
+        const sc=arr==='concentric'?Math.min(W,H)/2.15/mMax:Math.min(W,H)/2.15/Math.sqrt(mMax);
+        const rho=arr==='concentric'?2*prime*sc:Math.sqrt(2*prime)*sc;
+        ctx.font='9px monospace';ctx.fillStyle='#aa4444';ctx.textAlign='left';
+        ctx.fillText(`M=2p=${2*prime}`,cx+rho+3,cy-3);
+      }
+    }
+    // Fermat area shading
+    if(arr==='fermat'&&showArea){
+      const sc=Math.min(W,H)/2.15/Math.sqrt(mMax);
+      rings.forEach(({M})=>{
+        if(M%2!==0)return;
+        const r1=Math.sqrt(M)*sc,r2=Math.sqrt(M+1)*sc;
+        ctx.beginPath();ctx.arc(cx,cy,r2,0,2*Math.PI);ctx.arc(cx,cy,r1,0,2*Math.PI,true);
+        ctx.fillStyle='rgba(60,80,40,0.07)';ctx.fill();
+      });
+      if(mMax>=4){
+        const sc=Math.min(W,H)/2.15/Math.sqrt(mMax);
+        ctx.font='9px monospace';ctx.fillStyle='rgba(70,100,50,0.55)';ctx.textAlign='center';
+        ctx.fillText('area=π per step',cx,cy-Math.sqrt(4)*sc-5);
+      }
+    }
+    // 1/n lines (radial)
+    if(showNLines){
+      const sc=Math.min(W,H)/2.15;
+      [2,3,4,5,6,7,8,10,12].forEach(n=>{
+        const t=2*Math.PI/n;
+        ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(cx+sc*1.05*Math.cos(t),cy-sc*1.05*Math.sin(t));
+        ctx.strokeStyle='rgba(40,60,40,0.45)';ctx.lineWidth=0.5;ctx.setLineDash([4,6]);ctx.stroke();ctx.setLineDash([]);
+        ctx.font='8px monospace';ctx.fillStyle='#3a5a3a';ctx.textAlign='center';
+        ctx.fillText(`1/${n}`,cx+sc*0.94*Math.cos(t),cy-sc*0.94*Math.sin(t));
+      });
+    }
+    // Equator (horizontal)
+    if(showHalf){
+      ctx.beginPath();ctx.moveTo(cx-Math.min(W,H)/2.05,cy);ctx.lineTo(cx+Math.min(W,H)/2.05,cy);
+      ctx.strokeStyle='rgba(60,60,180,0.5)';ctx.lineWidth=1;ctx.setLineDash([8,5]);ctx.stroke();ctx.setLineDash([]);
+      ctx.font='9px monospace';ctx.fillStyle='#4444aa';ctx.textAlign='left';ctx.fillText('½',cx+Math.min(W,H)/2.06,cy-4);
+    }
+    // θ=0 marker
+    ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(cx+Math.min(W,H)/2.05,cy);
+    ctx.strokeStyle='rgba(100,80,40,0.3)';ctx.lineWidth=1;ctx.stroke();
+    ctx.beginPath();ctx.arc(cx,cy,3,0,2*Math.PI);ctx.fillStyle='#444';ctx.fill();
+
+  } else if(arr==='farey'){
+    const pad=30,xSc=W-2*pad,ySc=(H-2*pad)/0.5;
+    // Real line (M→∞)
+    ctx.beginPath();ctx.moveTo(pad,H-pad);ctx.lineTo(W-pad,H-pad);
+    ctx.strokeStyle='rgba(80,80,180,0.5)';ctx.lineWidth=1;ctx.setLineDash([7,4]);ctx.stroke();ctx.setLineDash([]);
+    ctx.font='7px monospace';ctx.fillStyle='#3a3a6a';ctx.textAlign='right';ctx.fillText('M→∞',W-pad-2,H-pad+9);
+    // 1/n vertical lines
+    if(showNLines)[2,3,4,5,6,7,8].forEach(n=>{
+      const x=pad+(1/n)*xSc;
+      ctx.beginPath();ctx.moveTo(x,pad);ctx.lineTo(x,H-pad);
+      ctx.strokeStyle='rgba(40,60,30,0.4)';ctx.lineWidth=0.5;ctx.setLineDash([3,5]);ctx.stroke();ctx.setLineDash([]);
+      ctx.font='7px monospace';ctx.fillStyle='#2a4a1a';ctx.textAlign='center';ctx.fillText(`1/${n}`,x,12);
+    });
+    // Horizontal rows per ring
+    if(showRings)rings.forEach(({M})=>{
+      const y=H-pad-(1/M)*ySc;
+      ctx.beginPath();ctx.moveTo(pad,y);ctx.lineTo(W-pad,y);
+      ctx.strokeStyle=isPrime(M)?'rgba(78,205,196,0.1)':'rgba(40,36,28,0.2)';ctx.lineWidth=0.3;ctx.stroke();
+      if(M<=8||(M%5===0&&M<=50)){ctx.font='7px monospace';ctx.fillStyle='#3a3020';ctx.textAlign='left';ctx.fillText(`M=${M}`,1,y+2);}
+    });
+    // Equator line (1/2)
+    if(showHalf){
+      const x=pad+(0.5)*xSc;
+      ctx.beginPath();ctx.moveTo(x,pad);ctx.lineTo(x,H-pad);
+      ctx.strokeStyle='rgba(60,60,180,0.4)';ctx.lineWidth=1;ctx.setLineDash([8,5]);ctx.stroke();ctx.setLineDash([]);
+      ctx.font='8px monospace';ctx.fillStyle='#4444aa';ctx.textAlign='left';ctx.fillText('½',x+3,16);
+    }
+
+  } else { // strip
+    const pad=30,xSc=(W-2*pad)/p.mMax,ySc=(H-2*pad)/(2*Math.PI);
+    // Equator at θ=π
+    const eqY=pad+Math.PI*ySc;
+    ctx.beginPath();ctx.moveTo(pad,eqY);ctx.lineTo(W-pad,eqY);
+    ctx.strokeStyle='rgba(60,60,180,0.5)';ctx.lineWidth=1;ctx.setLineDash([8,5]);ctx.stroke();ctx.setLineDash([]);
+    ctx.font='8px monospace';ctx.fillStyle='#4444aa';ctx.textAlign='left';ctx.fillText('½ θ=π',1,eqY+3);
+    // 1/n horizontal lines
+    if(showNLines)[3,4,6,8].forEach(n=>{
+      const y=pad+(2*Math.PI/n)*ySc;
+      ctx.beginPath();ctx.moveTo(pad,y);ctx.lineTo(W-pad,y);
+      ctx.strokeStyle='rgba(40,60,30,0.3)';ctx.lineWidth=0.4;ctx.setLineDash([3,5]);ctx.stroke();ctx.setLineDash([]);
+      ctx.font='7px monospace';ctx.fillStyle='#2a4a1a';ctx.textAlign='left';ctx.fillText(`1/${n}`,1,y+2);
+    });
+    // Column per ring
+    if(showRings)rings.forEach(({M})=>{
+      const x=pad+M*xSc;
+      if(isPrime(M)){ctx.fillStyle='rgba(78,205,196,0.04)';ctx.fillRect(x,pad,Math.max(1,xSc),H-2*pad);}
+      ctx.beginPath();ctx.moveTo(x,pad);ctx.lineTo(x,H-pad);
+      ctx.strokeStyle=isPrime(M)?'rgba(78,205,196,0.12)':'rgba(40,36,28,0.18)';ctx.lineWidth=0.3;ctx.stroke();
+      if(p.mMax<=70&&(isPrime(M)||M%10===0)){ctx.font='7px monospace';ctx.fillStyle=isPrime(M)?'rgba(78,205,196,0.5)':'#2a2018';ctx.textAlign='center';ctx.fillText(M,x,H-pad+9);}
+    });
+  }
+}
+
+// ════════════════════════════════════════════════════
+// LIFT TRAJECTORIES — connect consecutive appearances of each r
+// ════════════════════════════════════════════════════
+function drawAllLiftTrajectories(p){
+  const {mMax,mode}=p;
+  ctx.lineWidth=0.7;
+  for(let r=1;r<mMax;r++){
+    let prev=null;
+    for(let M=r+1;M<=mMax;M++){
+      if(gcd(r,M)!==1){prev=null;continue;}
+      const pos=coordFn(M,r);
+      if(prev){
+        // check consecutive (no valid M skipped)
+        let consec=true;
+        for(let mm=prev.M+1;mm<M;mm++)if(gcd(r,mm)===1){consec=false;break;}
+        if(consec){
+          const lifts=gcd(r,prev.M+1)===1;
+          ctx.beginPath();ctx.moveTo(prev.x,prev.y);ctx.lineTo(pos.x,pos.y);
+          ctx.strokeStyle=lifts?'rgba(78,205,150,0.3)':'rgba(200,80,80,0.18)';
+          ctx.stroke();
+        }
+      }
+      prev={...pos,M};
     }
   }
-  if(customR){
-    html+=`<div class="panel-title" style="margin:10px 0 6px;">r=${customR} path</div>`;
-    let count=0;
-    for(let M=customR+1;M<=mMax&&count<12;M++){
-      if(gcd(customR,M)!==1) continue;
-      const frac=(customR/M).toFixed(3), lifts=gcd(customR,M+1)===1;
-      html+=`<div style="color:${lifts?'#ff9f69':'#884433'}">M=${M} ${frac} ${lifts?'✓':'✗'}</div>`;
-      count++;
+}
+
+// ════════════════════════════════════════════════════
+// ±n/2 PATHS
+// ════════════════════════════════════════════════════
+function drawNPaths(p){
+  const {mMax,nOff,showAllN,ptSz}=p;
+  const ns=showAllN?[1,3,5,7,9]:[nOff];
+  const hues=[280,200,120,40,320];
+  ns.forEach((n,ni)=>{
+    const hL=hues[ni%5],hH=(hues[ni%5]+40)%360;
+    let lLo=null,lHi=null;
+    for(let M=n+1;M<=mMax;M++){
+      if((M-n)%2===0&&(M-n)>0){
+        const rLo=(M-n)/2;
+        if(rLo>=1&&gcd(rLo,M)===1){
+          const pos=coordFn(M,rLo),lifts=gcd(rLo,M+1)===1;
+          if(lLo){ctx.beginPath();ctx.moveTo(lLo.x,lLo.y);ctx.lineTo(pos.x,pos.y);ctx.strokeStyle=`hsla(${hL},70%,60%,0.25)`;ctx.lineWidth=0.9;ctx.stroke();}
+          ctx.beginPath();ctx.arc(pos.x,pos.y,ptSz*0.9,0,2*Math.PI);
+          ctx.fillStyle=lifts?`hsl(${hL},70%,65%)`:`hsl(${hL},50%,35%)`;ctx.fill();
+          lLo=pos;
+        }
+      }
+      if((M+n)%2===0){
+        const rHi=(M+n)/2;
+        if(rHi<M&&gcd(rHi,M)===1){
+          const pos=coordFn(M,rHi),lifts=gcd(rHi,M+1)===1;
+          if(lHi){ctx.beginPath();ctx.moveTo(lHi.x,lHi.y);ctx.lineTo(pos.x,pos.y);ctx.strokeStyle=`hsla(${hH},80%,55%,0.25)`;ctx.lineWidth=0.9;ctx.stroke();}
+          ctx.beginPath();ctx.arc(pos.x,pos.y,ptSz*0.9,0,2*Math.PI);
+          ctx.fillStyle=lifts?`hsl(${hH},80%,65%)`:`hsl(${hH},60%,30%)`;ctx.fill();
+          lHi=pos;
+        }
+      }
     }
+  });
+}
+
+// ════════════════════════════════════════════════════
+// CUSTOM R PATH
+// ════════════════════════════════════════════════════
+function drawCustomR(p){
+  const {mMax,customR,ptSz}=p;
+  if(!customR||customR<1)return;
+  let lC=null;
+  for(let M=Math.max(2,customR+1);M<=mMax;M++){
+    if(gcd(customR,M)!==1)continue;
+    const pos=coordFn(M,customR),lifts=gcd(customR,M+1)===1;
+    if(lC){ctx.beginPath();ctx.moveTo(lC.x,lC.y);ctx.lineTo(pos.x,pos.y);ctx.strokeStyle='rgba(255,159,105,0.4)';ctx.lineWidth=1.1;ctx.stroke();}
+    ctx.beginPath();ctx.arc(pos.x,pos.y,ptSz,0,2*Math.PI);
+    ctx.fillStyle=lifts?'#ff9f69':'#884433';ctx.fill();
+    lC=pos;
+  }
+}
+
+// ════════════════════════════════════════════════════
+// MIRROR PATH
+// ════════════════════════════════════════════════════
+function drawMirror(p){
+  const {mMax,p:prime,ptSz,showLifts}=p;
+  let lM=null;
+  for(let M=2;M<=mMax;M++){
+    const mir=M-prime;
+    if(mir<1||mir>=M||gcd(mir,M)!==1)continue;
+    const pos=coordFn(M,mir);
+    if(lM&&showLifts){ctx.beginPath();ctx.moveTo(lM.x,lM.y);ctx.lineTo(pos.x,pos.y);ctx.strokeStyle='rgba(232,201,106,0.28)';ctx.lineWidth=0.9;ctx.stroke();}
+    ctx.beginPath();ctx.arc(pos.x,pos.y,ptSz*0.85,0,2*Math.PI);
+    ctx.fillStyle='#c9a84c';ctx.fill();
+    lM=pos;
+  }
+}
+
+// ════════════════════════════════════════════════════
+// ALL COPRIME POINTS
+// ════════════════════════════════════════════════════
+function drawAllPoints(p){
+  const {mMax,mode,ptSz,p:prime,customR,showLeftPath,nOff}=p;
+  const skipNPaths=showLeftPath&&!p.showAllN;
+  rings.forEach(({M,pts})=>pts.forEach(({r,theta})=>{
+    if(r===prime||r===M-prime)return;
+    if(customR&&r===customR)return;
+    if(skipNPaths&&M%2===1&&(r===(M-nOff)/2||r===(M+nOff)/2))return;
+    const pos=coordFn(M,r);
+    ctx.beginPath();ctx.arc(pos.x,pos.y,ptSz*0.55,0,2*Math.PI);
+    ctx.fillStyle=getColor(mode,r,M,theta);ctx.fill();
+  }));
+}
+
+// ════════════════════════════════════════════════════
+// PRIME SPIRAL
+// ════════════════════════════════════════════════════
+function drawSpiral(p){
+  const {mMax,p:prime,ptSz,showLifts}=p;
+  let lT=null,lB=null;
+  for(let M=2;M<=mMax;M++){
+    if(gcd(prime,M)!==1)continue;
+    const pos=coordFn(M,prime),top=prime/M>0.5;
+    if(showLifts){
+      if(top&&lT){ctx.beginPath();ctx.moveTo(lT.x,lT.y);ctx.lineTo(pos.x,pos.y);ctx.strokeStyle='rgba(78,205,196,0.45)';ctx.lineWidth=1.2;ctx.stroke();}
+      if(!top&&lB){ctx.beginPath();ctx.moveTo(lB.x,lB.y);ctx.lineTo(pos.x,pos.y);ctx.strokeStyle='rgba(255,140,105,0.45)';ctx.lineWidth=1.2;ctx.stroke();}
+    }
+    if(top)lT=pos;else lB=pos;
+    ctx.beginPath();ctx.arc(pos.x,pos.y,ptSz,0,2*Math.PI);
+    ctx.fillStyle=top?'#4ecdc4':'#ff8c69';ctx.fill();
+  }
+}
+
+// ════════════════════════════════════════════════════
+// LABELS
+// ════════════════════════════════════════════════════
+function drawAllLabels(p){
+  const {ptSz,mMax}=p;
+  if(mMax>30)return; // too many labels for large M
+  ctx.font=`${Math.max(7,ptSz*2.5)}px monospace`;
+  coordMap.forEach(({x,y,M,r})=>{
+    ctx.fillStyle='rgba(200,180,140,0.7)';ctx.textAlign='left';
+    ctx.fillText(`${r}/${M}`,x+ptSz+2,y+3);
+  });
+}
+
+function drawClickedHighlight(pt,p){
+  const pos=coordFn(pt.M,pt.r);
+  ctx.beginPath();ctx.arc(pos.x,pos.y,p.ptSz*2.5,0,2*Math.PI);
+  ctx.strokeStyle='#e8c96a';ctx.lineWidth=1.5;ctx.stroke();
+  // Draw label
+  ctx.font='10px monospace';ctx.fillStyle='#e8c96a';ctx.textAlign='left';
+  const label=`r=${pt.r} M=${pt.M}`;
+  ctx.fillText(label,pos.x+p.ptSz*3,pos.y+4);
+}
+
+// ════════════════════════════════════════════════════
+// SIDEBAR UPDATES
+// ════════════════════════════════════════════════════
+function updateArrInfo(p){
+  const msgs={
+    concentric:`ρ(M) = M · area(M) ∝ M² · rings grow quadratically`,
+    fermat:`ρ(M) = √M · annular area π(M+1)−πM = π per step · total area = πN`,
+    farey:`(x,y) = (r/M, 1/M) · accumulates at real line · Ford circles · hyperbolic structure`,
+    strip:`x=M, y=θ=2πr/M · equator at y=π · half-line theorems visible`,
+  };
+  G('arrInfo').textContent=msgs[p.arr]||'';
+}
+
+function updateSpiralTable(p){
+  const div=G('spiralTable');
+  const titleEl=G('spiralTitle');
+  if(titleEl) titleEl.textContent=`p=${p.p} Spiral`;
+  const {mMax,p:prime}=p;
+  const lim=Math.min(mMax,3*prime+2);
+  let html='';
+  for(let M=prime+1;M<=lim;M++){
+    const on=gcd(prime,M)===1,frac=(prime/M).toFixed(3),top=prime/M>0.5;
+    const mir=M-prime,mOn=mir>=1&&gcd(mir,M)===1,mL=mOn&&gcd(mir,M+1)===1;
+    if(!on)html+=`<div class="gp">M=${M} ${frac} GAP</div>`;
+    else html+=`<div class="${top?'tp':'bt'}">M=${M} ${frac} ${top?'▲':'▼'} mir=${mir}${mOn?(mL?' ✓':' ✗'):''}</div>`;
   }
   div.innerHTML=html;
 }
 
-function setN(v){
-  document.getElementById('nOffset').value = v;
-  document.getElementById('nOffsetVal').textContent = v;
-  updateFormula(v);
-  render();
-}
-
-function updateFormula(n){
-  const el = document.getElementById('nFormula');
-  if(!el) return;
-  // Lift condition for (M-n)/2: gcd((M-n)/2, M+1)
-  // gcd((M-n)/2, M+1) = gcd((M-n)/2, (M+1)-(M-n)/2·2+(M-n)/2)
-  // = gcd((M-n)/2, n+1+1) ... let's just show the key identity
-  // (M+n)/2: gcd((M+n)/2, M+1) = gcd((M+n)/2, (M+1)-(M+n)/2) 
-  //        = gcd((M+n)/2, (2-n)/2+1/2)... 
-  // Simpler: gcd((M+n)/2, M+1) = gcd((M+n)/2, M+1)
-  // M+1 - (M+n)/2 = (2M+2-M-n)/2 = (M+2-n)/2
-  // gcd((M+n)/2, (M+2-n)/2) = gcd((M+n)/2, (M+2-n)/2)
-  // Note: (M+n)/2 + (M+2-n)/2 = M+1. So gcd = gcd((M+n)/2, M+1)
-  // For n=1: gcd((M+1)/2, M+1) = (M+1)/2 → NEVER lifts
-  // For general n: gcd((M+n)/2, M+1) = gcd((M+n)/2, n+1) [by Euclidean: M+1 - (M+n)/2 = (M+2-n)/2, iterate]
-  const upper_liftable = n === 1 ? 'NEVER' : `iff gcd((M+${n})/2, ${n+1}) = 1`;
-  const lower_lift = `iff (M−${n})/2 is coprime to M+1`;
-  el.innerHTML =
-    `r = (M+${n})/2:<br>` +
-    `  angle → ½ from <b style="color:#ff8870;">above</b><br>` +
-    `  lifts ${upper_liftable}<br><br>` +
-    `r = (M−${n})/2:<br>` +
-    `  angle → ½ from <b style="color:#cc88ff;">below</b><br>` +
-    `  ${lower_lift}`;
-}
-
-// Wire controls
-const IDS=['mMax','primeSelect','customR','showAll','showSpiral','showMirror',
-           'showCustom','showLeftPath','showAllN','nOffset','showHalf','showNLines',
-           'showRings','showLifts','ptSz'];
-IDS.forEach(id=>{
-  const el=document.getElementById(id);
-  if(!el) return;
-  el.addEventListener('input',()=>{
-    const mVal=document.getElementById('mMax').value;
-    document.getElementById('mMaxVal').textContent=`1 – ${mVal}`;
-    document.getElementById('mMaxNum').value=mVal;
-    document.getElementById('ptSzVal').textContent=document.getElementById('ptSz').value;
-    const n=parseInt(document.getElementById('nOffset').value)||1;
-    document.getElementById('nOffsetVal').textContent=n;
-    updateFormula(n);
-    render();
+// ════════════════════════════════════════════════════
+// CLICK / HOVER INSPECTION
+// ════════════════════════════════════════════════════
+function findNearestPoint(mx,my){
+  let best=null,bestD=Infinity;
+  coordMap.forEach((pt)=>{
+    const d=Math.hypot(pt.x-mx,pt.y-my);
+    if(d<bestD){bestD=d;best=pt;}
   });
+  return bestD<18?best:null;
+}
+
+function showTip(pt,mx,my){
+  const tip=G('tip');
+  if(!pt){tip.style.display='none';return;}
+  const lifts=gcd(pt.r,pt.M+1)===1;
+  const onM=gcd(pt.r,pt.M)===1;
+  const half=pt.r/pt.M>0.5?'TOP':'BOTTOM';
+  tip.innerHTML=`<b>r=${pt.r}, M=${pt.M}</b><br>r/M=${(pt.r/pt.M).toFixed(5)}<br>θ=${(pt.theta/(2*Math.PI)*360).toFixed(2)}°<br>Half: ${half}<br>Lift to M+1: ${lifts?'✓ yes':'✗ no'}<br>gcd(r,M+1)=${gcd(pt.r,pt.M+1)}<br>M prime: ${isPrime(pt.M)?'yes':'no'}`;
+  tip.style.display='block';
+  tip.style.left=(mx+14)+'px';
+  tip.style.top=(my-10)+'px';
+}
+
+function showClickInfo(pt){
+  const div=G('clickInfo');
+  if(!pt){div.textContent='Click any point to inspect.';return;}
+  const lifts=gcd(pt.r,pt.M+1)===1;
+  const upper=(pt.r/pt.M>0.5);
+  const mirR=pt.M-pt.r,mirOn=mirR>=1&&gcd(mirR,pt.M)===1;
+  const mirLifts=mirOn&&gcd(mirR,pt.M+1)===1;
+  const mirStr = mirOn ? '(' + (mirLifts?'lifts':'blocked') + ')' : 'not on ring';
+  const halfStr = upper ? '<span style="color:#4ecdc4">TOP</span>' : '<span style="color:#ff8c69">BOTTOM</span>';
+  const primeStr = isPrime(pt.M) ? '<span style="color:#4ecdc4">yes</span>' : 'no';
+  const liftStr = lifts ? 'YES' : 'NO';
+  const liftCol = lifts ? '#4ecdc4' : '#cc4444';
+  const inZp = (isPrime(pt.M) && gcd(pt.r,pt.M)===1) ? 'yes (p prime)' : 'check';
+  div.innerHTML = '<b style="color:#e8c96a">r='+pt.r+', M='+pt.M+'</b><br>'
+    + 'Angle: '+(pt.r/pt.M).toFixed(6)+'<br>'
+    + '\u03b8: '+(pt.theta/(2*Math.PI)*360).toFixed(2)+'\u00b0<br>'
+    + 'Half: '+halfStr+'<br>'
+    + 'Lifts r\u2192M+1: <b style="color:'+liftCol+'">'+liftStr+'</b><br>'
+    + 'gcd(r,M): '+gcd(pt.r,pt.M)+'<br>'
+    + 'gcd(r,M+1): '+gcd(pt.r,pt.M+1)+'<br>'
+    + 'M prime: '+primeStr+'<br>'
+    + '\u03c6(M): '+phi(pt.M)+'<br>'
+    + 'Mirror M\u2212r: '+mirR+' '+mirStr+'<br>'
+    + 'r/M in (Z/pZ): '+inZp;
+}
+
+cv.addEventListener('mousemove',e=>{
+  const rect=cv.getBoundingClientRect();
+  const sx=cv.width/rect.width,sy=cv.height/rect.height;
+  const mx=(e.clientX-rect.left)*sx,my=(e.clientY-rect.top)*sy;
+  const pt=findNearestPoint(mx,my);
+  if(pt!==hovered){hovered=pt;showTip(pt,e.clientX-rect.left+14,e.clientY-rect.top);}
+  else if(pt){G('tip').style.left=(e.clientX-rect.left+14)+'px';G('tip').style.top=(e.clientY-rect.top-10)+'px';}
+  cv.style.cursor=pt?'crosshair':'default';
 });
-document.getElementById('mMaxNum').addEventListener('input',()=>{
-  const v=Math.max(8,Math.min(300,parseInt(document.getElementById('mMaxNum').value)||30));
-  document.getElementById('mMax').value=v;
-  document.getElementById('mMaxVal').textContent=`1 – ${v}`;
+cv.addEventListener('mouseleave',()=>{hovered=null;G('tip').style.display='none';});
+cv.addEventListener('click',e=>{
+  const rect=cv.getBoundingClientRect();
+  const sx=cv.width/rect.width,sy=cv.height/rect.height;
+  const mx=(e.clientX-rect.left)*sx,my=(e.clientY-rect.top)*sy;
+  const pt=findNearestPoint(mx,my);
+  clicked=(clicked&&pt&&clicked.M===pt.M&&clicked.r===pt.r)?null:pt;
+  showClickInfo(clicked);
   render();
 });
+
+// ════════════════════════════════════════════════════
+// PRIME SELECT
+// ════════════════════════════════════════════════════
+function updatePrimeSelect(){
+  const mMax=parseInt(V('mMax'))||40;
+  const sel=G('primeSelect'),cur=parseInt(sel.value)||5;
+  const ps=primesUpTo(mMax);
+  sel.innerHTML=ps.map(pv=>`<option value="${pv}"${(pv===cur||(sel.options.length===0&&pv===5))?` selected`:''}>p = ${pv}</option>`).join('');
+  // sync slider: slider index into ps array
+  const pSlider=G('pSlider');
+  if(pSlider){
+    pSlider.max=ps.length;
+    pSlider.min=1;
+    const idx=ps.indexOf(parseInt(sel.value)||5);
+    pSlider.value=idx>=0?idx+1:1;
+    const pv=ps[idx>=0?idx:0];
+    const pSliderV=G('pSliderV');
+    if(pSliderV) pSliderV.textContent=pv||'';
+  }
+}
+
+function onPSelect(){
+  // dropdown changed — sync slider
+  const sel=G('primeSelect');
+  const mMax=parseInt(V('mMax'))||40;
+  const ps=primesUpTo(mMax);
+  const idx=ps.indexOf(parseInt(sel.value));
+  const pSlider=G('pSlider');
+  if(pSlider) pSlider.value=idx>=0?idx+1:1;
+  const pSliderV=G('pSliderV');
+  if(pSliderV) pSliderV.textContent=sel.value;
+  onCtrl();
+}
+
+function onPSlider(){
+  const mMax=parseInt(V('mMax'))||40;
+  const ps=primesUpTo(mMax);
+  const idx=Math.min(parseInt(V('pSlider'))-1, ps.length-1);
+  const pv=ps[Math.max(0,idx)];
+  if(!pv) return;
+  const sel=G('primeSelect');
+  sel.value=pv;
+  const pSliderV=G('pSliderV');
+  if(pSliderV) pSliderV.textContent=pv;
+  onCtrl();
+}
+
+// ════════════════════════════════════════════════════
+// FORMULA
+// ════════════════════════════════════════════════════
+function updateFormula(n){
+  const up=n===1?'<b style="color:#ff4466">NEVER lifts</b>':`iff gcd((M+${n})/2, ${n+1})=1`;
+  G('nFormula').innerHTML=`r=(M+${n})/2 → ½ above<br>lifts: ${up}<br><br>r=(M−${n})/2 → ½ below<br>lifts: iff gcd((M−${n})/2,M+1)=1`;
+}
+function setN(v){G('nOff').value=v;G('nOffV').textContent=v;updateFormula(v);onCtrl();}
+function onNChange(){const n=parseInt(V('nOff'));G('nOffV').textContent=n;updateFormula(n);onCtrl();}
+
+// ════════════════════════════════════════════════════
+// EXPORT 4K
+// ════════════════════════════════════════════════════
+function doExport(){
+  const p=getP();
+  const EW=3840,EH=2400,TH=100,FH=36,LW=420;
+  const MW=EW-LW,CH=EH-TH-FH;
+  const ec=document.createElement('canvas');ec.width=EW;ec.height=EH;
+  const ec2=ec.getContext('2d');
+  ec2.fillStyle='#0a0a0f';ec2.fillRect(0,0,EW,EH);
+
+  // Render main canvas at export size
+  const oc=document.createElement('canvas');oc.width=MW;oc.height=CH;
+  const savedW=cv.width,savedH=cv.height;
+  cv.width=MW;cv.height=CH;
+  coordFn=getCoordFn(p.arr,MW,CH,p.mMax);
+  rings=buildRings(p.mMax);
+  coordMap=new Map();
+  rings.forEach(({M,pts})=>pts.forEach(({r,theta})=>coordMap.set(`${M}:${r}`,{...coordFn(M,r),M,r,theta})));
+  ctx.fillStyle='#0a0a0f';ctx.fillRect(0,0,MW,CH);
+  drawBackground({...p},MW,CH);
+  if(p.showLifts)drawAllLiftTrajectories({...p,ptSz:p.ptSz*2});
+  if(p.showLeftPath)drawNPaths({...p,ptSz:p.ptSz*2});
+  if(p.showCustom&&p.customR)drawCustomR({...p,ptSz:p.ptSz*2});
+  if(p.showMirror)drawMirror({...p,ptSz:p.ptSz*2});
+  if(p.showAll)drawAllPoints({...p,ptSz:p.ptSz*2});
+  if(p.showSpiral)drawSpiral({...p,ptSz:p.ptSz*2});
+  if(clicked)drawClickedHighlight(clicked,{...p,ptSz:p.ptSz*2});
+  ec2.drawImage(cv,0,TH);
+  cv.width=savedW;cv.height=savedH;
+  resize();
+
+  // Title
+  ec2.fillStyle='rgba(10,10,15,0.97)';ec2.fillRect(0,0,MW,TH);
+  ec2.strokeStyle='#2a2418';ec2.lineWidth=1;ec2.beginPath();ec2.moveTo(0,TH);ec2.lineTo(MW,TH);ec2.stroke();
+  ec2.textAlign='center';
+  ec2.font='italic 300 42px Georgia,serif';ec2.fillStyle='#e8c96a';
+  ec2.fillText(V('expTitle')||'Modular Ring Explorer',MW/2,48);
+  const sub=V('expSub')||`M=1–${p.mMax} · p=${p.p} · ${p.arr} arrangement · n=${p.nOff}`;
+  ec2.font='300 16px "Courier New",monospace';ec2.fillStyle='#5a4a3a';ec2.fillText(sub,MW/2,74);
+  const arrDesc={concentric:'ρ(M)=M',fermat:'ρ(M)=√M  [annular area = π per step]',farey:'(r/M, 1/M) Farey half-plane',strip:'(M, 2πr/M) unfolded strip'};
+  ec2.font='300 13px "Courier New",monospace';ec2.fillStyle='#4a4030';ec2.fillText(arrDesc[p.arr]||'',MW/2,94);
+
+  // Footer
+  ec2.fillStyle='rgba(10,10,15,0.92)';ec2.fillRect(0,EH-FH,EW,FH);
+  ec2.strokeStyle='#2a2418';ec2.lineWidth=1;ec2.beginPath();ec2.moveTo(0,EH-FH);ec2.lineTo(EW,EH-FH);ec2.stroke();
+  ec2.font='300 11px "Courier New",monospace';ec2.fillStyle='#3a3020';ec2.textAlign='center';
+  ec2.fillText('wessengetachew.github.io  ·  2026',EW/2,EH-10);
+
+  // Legend panel
+  const lx=MW;
+  ec2.fillStyle='#0d0c0a';ec2.fillRect(lx,0,LW,EH);
+  ec2.strokeStyle='#2a2418';ec2.lineWidth=1;ec2.beginPath();ec2.moveTo(lx,0);ec2.lineTo(lx,EH);ec2.stroke();
+  const LP=32;let ly=44;
+  function lTt(t){ec2.font='500 9px "Courier New",monospace';ec2.fillStyle='#8b6310';ec2.textAlign='left';ec2.fillText(t.toUpperCase(),lx+LP,ly);ly+=18;ec2.strokeStyle='#2a2418';ec2.lineWidth=0.5;ec2.beginPath();ec2.moveTo(lx+LP,ly);ec2.lineTo(lx+LP+LW-LP-20,ly);ec2.stroke();ly+=12;}
+  function lDt(col,label){ec2.beginPath();ec2.arc(lx+LP+6,ly-4,6,0,2*Math.PI);ec2.fillStyle=col;ec2.fill();ec2.font='300 11px "Courier New",monospace';ec2.fillStyle='#9a8878';ec2.textAlign='left';ec2.fillText(label,lx+LP+18,ly);ly+=19;}
+  function lRt(k,v){ec2.font='300 9px "Courier New",monospace';ec2.fillStyle='#5a4a3a';ec2.textAlign='left';ec2.fillText(k,lx+LP,ly);ec2.fillStyle='#a09080';ec2.font='400 11px "Courier New",monospace';ec2.fillText(v,lx+LP,ly+13);ly+=30;}
+
+  ec2.font='italic 300 24px Georgia,serif';ec2.fillStyle='#e8c96a';ec2.textAlign='left';ec2.fillText('Legend',lx+LP,ly);ly+=28;
+  lTt('Colors');
+  lDt('#4a5a4a','Coprime pt gcd(r,M)=1');
+  lDt('#4ecdc4',`p=${p.p} TOP (p/M>½)`);
+  lDt('#ff8c69',`p=${p.p} BOTTOM (p/M<½)`);
+  lDt('#c9a84c','Mirror M−p');
+  lDt('#ff9f69',`Custom r=${p.customR||'—'}`);
+  lDt('#cc88ff',`(M−${p.nOff})/2 lower`);
+  lDt('#ff4466',`(M+${p.nOff})/2 upper${p.nOff===1?' NEVER lifts':''}`);
+  ly+=6;lTt('Parameters');
+  lRt('Arrangement',arrDesc[p.arr]||p.arr);
+  lRt('Mod range',`M = 1 to ${p.mMax}`);
+  lRt('Prime',`p = ${p.p}`);
+  lRt('Equator crossing',`M = 2p = ${2*p.p}`);
+  lRt('n offset',`n = ${p.nOff}`);
+  ly+=6;lTt('Key Theorems §8');
+  lRt('8.1 Equator Gap','gcd(p,2p)=p>1 · gap width=1');
+  lRt('8.2 Mirror Lift','gcd(M−p,M+1)=gcd(M−p,p+1)');
+  lRt('8.3 Bottom Sector',`p appears p−1=${p.p-1} times in [2p+1,3p]`);
+  lRt('8.4 Upper Path','(M+1)/2 NEVER lifts');
+  lRt('8.5 Lower Path','(M−1)/2 lifts iff M≡3(mod 4)');
+  lRt('Cor 8.5a Z[i]','at prime q: lifts iff q inert in Z[i]');
+  ec2.font='300 9px "Courier New",monospace';ec2.fillStyle='#2a2018';ec2.textAlign='left';
+  ec2.fillText('wessengetachew.github.io · 2026',lx+LP,EH-16);
+
+  const a=document.createElement('a');a.download=`rings_${p.arr}_M${p.mMax}_p${p.p}_4K.png`;a.href=ec.toDataURL('image/png');a.click();
+}
+
+// ════════════════════════════════════════════════════
+// RESIZE + WIRE
+// ════════════════════════════════════════════════════
+function resize(){
+  const c=document.getElementById('center');
+  cv.width=c.clientWidth;cv.height=c.clientHeight;
+  render();
+}
+
+function onCtrl(){
+  G('ptSzV').textContent=V('ptSz');
+  render();
+}
+function onMChange(){
+  G('mMaxN').value=V('mMax');
+  updatePrimeSelect();onCtrl();
+}
+function onMNumChange(){
+  const v=Math.max(4,Math.min(600,parseInt(V('mMaxN'))||40));
+  G('mMax').value=Math.min(v,150);
+  updatePrimeSelect();onCtrl();
+}
 
 window.addEventListener('resize',resize);
+updatePrimeSelect();
 updateFormula(1);
 resize();
-
 </script>
 </body>
 </html>
