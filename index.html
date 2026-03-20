@@ -32,7 +32,7 @@ input[type=checkbox]{accent-color:#8b6310;cursor:pointer;}
 #body{display:flex;flex:1;overflow:hidden;}
 
 /* ── Left panel ── */
-#left{width:230px;min-width:200px;background:#0d0c0a;border-right:1px solid #2a2418;overflow-y:auto;padding:10px;display:flex;flex-direction:column;gap:8px;flex-shrink:0;}
+#left{width:280px;min-width:240px;background:#0d0c0a;border-right:1px solid #2a2418;overflow-y:auto;padding:10px;display:flex;flex-direction:column;gap:8px;flex-shrink:0;}
 .pttl{font-size:8px;letter-spacing:0.16em;text-transform:uppercase;color:#8b6310;border-bottom:1px solid #2a2418;padding-bottom:5px;margin-bottom:2px;}
 .ck{cursor:pointer;color:#5a4a3a;font-size:10px;display:flex;align-items:center;gap:4px;}
 .ck input{accent-color:#8b6310;}
@@ -50,15 +50,14 @@ input[type=checkbox]{accent-color:#8b6310;cursor:pointer;}
 /* Tooltip */
 #tip{position:absolute;background:rgba(10,10,15,0.92);border:1px solid #8b6310;padding:5px 8px;font-size:9px;color:#e8c96a;pointer-events:none;display:none;border-radius:2px;max-width:180px;line-height:1.6;}
 
-/* ── Right panel ── */
-#right{width:210px;min-width:180px;background:#0d0c0a;border-left:1px solid #2a2418;overflow-y:auto;padding:10px;display:flex;flex-direction:column;gap:8px;flex-shrink:0;}
+/* legend dots */
+.dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:4px;vertical-align:middle;}
+.ln{display:inline-block;width:16px;height:2px;margin-right:4px;vertical-align:middle;}
+/* spiral table */
 .rt{font-size:9px;line-height:1.9;}
 .rt .tp{color:#4ecdc4;}
 .rt .bt{color:#ff8c69;}
 .rt .gp{color:#444;}
-/* Legend dots */
-.dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:4px;vertical-align:middle;}
-.ln{display:inline-block;width:16px;height:2px;margin-right:4px;vertical-align:middle;}
 </style>
 </head>
 <body>
@@ -77,7 +76,7 @@ input[type=checkbox]{accent-color:#8b6310;cursor:pointer;}
   <!-- Arrangement picker -->
   <div class="c">
     <label>View</label>
-    <select id="arrSel" onchange="onCtrl()">
+    <select id="arrSel" onchange="onArrChange()">
       <option value="concentric">Concentric  ρ=M</option>
       <option value="fermat">Fermat Spiral  ρ=√M  ★π</option>
       <option value="farey">Farey Half-Plane</option>
@@ -134,9 +133,14 @@ input[type=checkbox]{accent-color:#8b6310;cursor:pointer;}
       <label style="color:#5a4a3a;font-size:9px;">Prime p</label>
       <select id="primeSelect" style="width:100%;" onchange="onPSelect()"></select>
     </div>
+    <div style="display:flex;gap:3px;margin-top:2px;">
+      <button class="xb" onclick="stepPrime(-1)" style="flex:1;">◀ prev</button>
+      <button class="xb" onclick="stepPrime(1)"  style="flex:1;">next ▶</button>
+      <button class="xb" id="allPrimesBtn" onclick="toggleAllPrimes()" style="flex:1;font-size:8px;" title="Cycle through all primes">all p</button>
+    </div>
     <!-- p slider -->
-    <div class="c" style="justify-content:space-between;">
-      <label style="color:#5a4a3a;font-size:9px;">p slider</label>
+    <div class="c" style="justify-content:space-between;margin-top:2px;">
+      <label style="color:#5a4a3a;font-size:9px;">p index</label>
       <span class="cv" id="pSliderV">5</span>
     </div>
     <input type="range" id="pSlider" min="1" max="20" value="3" style="width:100%;accent-color:#8b6310;" oninput="onPSlider()">
@@ -157,28 +161,86 @@ input[type=checkbox]{accent-color:#8b6310;cursor:pointer;}
       <label class="ck"><input type="checkbox" id="showHalf" checked onchange="onCtrl()"> ½ equator line</label>
       <label class="ck"><input type="checkbox" id="showNLines" checked onchange="onCtrl()"> 1/n sector lines</label>
       <label class="ck"><input type="checkbox" id="showRings" checked onchange="onCtrl()"> Ring circles</label>
-      <label class="ck"><input type="checkbox" id="showLabels" onchange="onCtrl()"> Point labels (all)</label>
     </div>
 
+    <div class="pttl">Point Labels</div>
+    <label class="ck"><input type="checkbox" id="showLabels" onchange="onCtrl()"> Show labels</label>
+    <div class="c" style="justify-content:space-between;margin-top:3px;">
+      <label style="color:#5a4a3a;font-size:9px;">label size</label>
+      <span class="cv" id="labelSzV">9</span>
+    </div>
+    <input type="range" id="labelSz" min="6" max="18" value="9" step="1" style="width:100%;accent-color:#8b6310;" oninput="G('labelSzV').textContent=this.value;onCtrl()">
+    <div style="color:#5a4a3a;font-size:9px;margin-top:3px;">Label format:</div>
+    <select id="labelFmt" onchange="onCtrl()" style="width:100%;margin-top:2px;">
+      <option value="r">r  (residue)</option>
+      <option value="rM">r/M  (fraction)</option>
+      <option value="rMdec">r/M decimal</option>
+      <option value="deg">θ degrees</option>
+      <option value="pi">θ/π  (× π)</option>
+      <option value="rad">θ radians</option>
+      <option value="Mr">M:r</option>
+      <option value="gcd">gcd(r,M+1)</option>
+    </select>
+    <div class="c" style="justify-content:space-between;margin-top:3px;">
+      <label style="color:#5a4a3a;font-size:9px;">max M to label</label>
+      <span class="cv" id="labelMaxMV">20</span>
+    </div>
+    <input type="range" id="labelMaxM" min="2" max="60" value="20" step="1" style="width:100%;accent-color:#8b6310;" oninput="G('labelMaxMV').textContent=this.value;onCtrl()">
+
     <div class="pttl">Left-Side Paths (M±n)/2</div>
+    <div style="font-size:9px;color:#4a3a2a;margin-bottom:4px;line-height:1.6;">
+      r=(M±n)/2 is valid when M and n have the <b style="color:#8b6310;">same parity</b>.<br>
+      Any n works — odd n pairs with odd M, even n with even M.
+    </div>
     <label class="ck"><input type="checkbox" id="showLeftPath" checked onchange="onCtrl()"> Show ±n paths</label>
-    <div class="c" style="justify-content:space-between;">
+    <div class="c" style="justify-content:space-between;margin-top:4px;">
       <label style="color:#5a4a3a;font-size:9px;">n offset</label>
       <span class="cv" id="nOffV">1</span>
     </div>
-    <input type="range" id="nOff" min="1" max="20" value="1" step="2" style="width:100%;accent-color:#8b6310;" oninput="onNChange()">
-    <div class="nb">
-      <button onclick="setN(1)">n=1</button>
-      <button onclick="setN(3)">n=3</button>
-      <button onclick="setN(5)">n=5</button>
-      <button onclick="setN(7)">n=7</button>
-      <button onclick="setN(9)">n=9</button>
+    <div style="display:flex;gap:4px;align-items:center;">
+      <input type="range" id="nOff" min="1" max="99" value="1" step="1" style="flex:1;accent-color:#8b6310;" oninput="onNChange()">
+      <input type="number" id="nOffNum" value="1" min="1" max="999" style="width:46px;background:#181614;border:1px solid #2a2418;color:#e8c96a;font-family:inherit;font-size:9px;padding:2px 4px;border-radius:2px;" oninput="onNNumChange()">
+    </div>
+    <div class="nb" style="margin-top:3px;">
+      <button onclick="setN(1)">1</button>
+      <button onclick="setN(2)">2</button>
+      <button onclick="setN(3)">3</button>
+      <button onclick="setN(5)">5</button>
+      <button onclick="setN(7)">7</button>
+      <button onclick="setN(9)">9</button>
+      <button onclick="setN(11)">11</button>
+      <button onclick="setN(15)">15</button>
     </div>
     <label class="ck"><input type="checkbox" id="showAllN" onchange="onCtrl()"> All n=1,3,5,7,9</label>
     <div id="nFormula" style="font-size:9px;color:#e8c96a;line-height:1.7;background:#0a0a0f;padding:4px 6px;border-radius:2px;margin-top:2px;"></div>
 
-    <div class="pttl">Export Details</div>
-    <input type="text" id="expSub" placeholder="Subtitle" style="width:100%;background:#0a0a0f;border:1px solid #2a2418;color:#9a8878;font-family:inherit;font-size:9px;padding:3px 5px;border-radius:2px;">
+    <div class="pttl">Lift Line Thickness</div>
+    <div class="c" style="justify-content:space-between;">
+      <label style="color:#5a4a3a;font-size:9px;">thickness</label>
+      <span class="cv" id="liftLWV">1.0</span>
+    </div>
+    <input type="range" id="liftLW" min="0.2" max="6" value="1.0" step="0.2" style="width:100%;accent-color:#8b6310;" oninput="onCtrl()">
+    <div class="c" style="justify-content:space-between;margin-top:3px;">
+      <label style="color:#5a4a3a;font-size:9px;">opacity</label>
+      <span class="cv" id="liftAlphaV">0.35</span>
+    </div>
+    <input type="range" id="liftAlpha" min="0.05" max="1" value="0.35" step="0.05" style="width:100%;accent-color:#8b6310;" oninput="onCtrl()">
+
+    <div class="pttl">Presets &amp; Animation</div>
+    <div style="font-size:8px;color:#4a3a2a;margin-bottom:4px;" id="presetArrLabel">concentric presets</div>
+    <div id="presetBtns" class="nb" style="flex-wrap:wrap;gap:3px;"></div>
+    <div style="display:flex;flex-direction:column;gap:4px;margin-top:4px;">
+      <div class="c" style="justify-content:space-between;">
+        <label style="color:#5a4a3a;font-size:9px;">anim speed</label>
+        <span class="cv" id="animSpeedV">2s</span>
+      </div>
+      <input type="range" id="animSpeed" min="0.5" max="8" value="2" step="0.5" style="width:100%;accent-color:#8b6310;" oninput="G('animSpeedV').textContent=this.value+'s'">
+      <div style="display:flex;gap:4px;">
+        <button class="xb" id="animPlayBtn" onclick="toggleAnim()" style="flex:1;">▶ Play</button>
+        <button class="xb" onclick="stopAnim()" style="flex:1;">■ Stop</button>
+      </div>
+      <div id="animStatus" style="font-size:8px;color:#4a3a2a;min-height:14px;"></div>
+    </div>
 
     <div class="pttl">Legend</div>
     <div style="font-size:9px;line-height:2.0;">
@@ -192,22 +254,13 @@ input[type=checkbox]{accent-color:#8b6310;cursor:pointer;}
       <div><span class="ln" style="background:rgba(78,205,150,0.6);"></span>Lift line</div>
       <div><span class="ln" style="background:rgba(200,80,80,0.4);"></span>Blocked</div>
     </div>
-  </div>
 
-  <!-- CENTER: single full-screen canvas -->
-  <div id="center">
-    <canvas id="cv"></canvas>
-    <div id="tip"></div>
-  </div>
-
-  <!-- RIGHT: theorems + inspection table -->
-  <div id="right">
     <div class="pttl">Theorems §8</div>
-    <div class="obs"><div class="ot">8.1 Equator Gap</div>gcd(p,2p)=p. No prime at angle ½. Gap width=1 ring.</div>
-    <div class="obs"><div class="ot">8.2 Mirror Lift</div><div class="mf">gcd(M−p,M+1)=gcd(M−p,p+1)</div>Mirrors lifting = R(p+1)∩{1…p−1}.<br>Encodes <b>(Z/(p+1)Z)*</b>.</div>
-    <div class="obs"><div class="ot">8.3 Bottom Sector</div>In [2p+1,3p]: exactly <b>p−1 appearances</b>. M mod p covers (Z/pZ)* in order. <b>p−2 lift</b>, unique fail at M=3p−1.</div>
-    <div class="obs"><div class="ot">8.4 Upper Path</div><div class="mf">gcd((M+1)/2,M+1)=(M+1)/2≥2</div><b>Never lifts</b>. Permanent barrier.</div>
-    <div class="obs"><div class="ot">8.5 Lower Path</div><div class="mf">gcd((M−1)/2,M+1)=gcd(…,2)</div>Lifts iff M≡3(mod 4).<br>At prime q: lifts iff <b>q inert in Z[i]</b>.</div>
+    <div class="obs"><div class="ot">8.1 Equator Gap</div>gcd(p,2p)=p. No prime at angle ½. Gap width = 1 ring.</div>
+    <div class="obs"><div class="ot">8.2 Mirror Lift</div><div class="mf">gcd(M−p, M+1) = gcd(M−p, p+1)</div>Mirrors lifting = R(p+1) ∩ {1…p−1}. Encodes <b>(Z/(p+1)Z)*</b>.</div>
+    <div class="obs"><div class="ot">8.3 Bottom Sector</div>In [2p+1, 3p]: exactly <b>p−1 appearances</b>. M mod p covers (Z/pZ)* in order. <b>p−2 lift</b>; unique fail M=3p−1.</div>
+    <div class="obs"><div class="ot">8.4 Upper Path</div><div class="mf">gcd((M+1)/2, M+1) = (M+1)/2 ≥ 2</div><b>Never lifts.</b> Permanent equatorial barrier.</div>
+    <div class="obs"><div class="ot">8.5 Lower Path</div><div class="mf">gcd((M−1)/2, M+1) = gcd(…, 2)</div>Lifts iff M ≡ 3 (mod 4). At prime q: lifts iff <b>q inert in Z[i]</b>.</div>
 
     <div class="pttl" style="margin-top:4px;">Arrangement</div>
     <div id="arrInfo" style="font-size:9px;color:#5a4a3a;line-height:1.75;"></div>
@@ -217,7 +270,15 @@ input[type=checkbox]{accent-color:#8b6310;cursor:pointer;}
 
     <div class="pttl" id="spiralTitle" style="margin-top:4px;">p Spiral</div>
     <div id="spiralTable" class="rt"></div>
+
   </div>
+
+  <!-- CENTER: single full-screen canvas -->
+  <div id="center">
+    <canvas id="cv"></canvas>
+    <div id="tip"></div>
+  </div>
+
 </div>
 
 <script>
@@ -238,8 +299,8 @@ let rings=[], coordMap=new Map(); // coordMap: "M:r" -> {x,y}
 let hovered=null, clicked=null;
 
 function G(id){return document.getElementById(id);}
-function V(id){return G(id).value;}
-function C(id){return G(id).checked;}
+function V(id){return G(id)?G(id).value:'';}
+function C(id){return G(id)?G(id).checked:false;}
 
 function getP(){
   return{
@@ -254,7 +315,71 @@ function getP(){
     showRings:C('showRings'), showLabels:C('showLabels'),
     showLeftPath:C('showLeftPath'), showAllN:C('showAllN'),
     nOff:parseInt(V('nOff'))||1,
+    liftLW:parseFloat(V('liftLW'))||1.0,
+    liftAlpha:parseFloat(V('liftAlpha'))||0.35,
+    labelSz:parseInt(V('labelSz'))||9,
+    labelFmt:V('labelFmt')||'r',
+    labelMaxM:parseInt(V('labelMaxM'))||20,
   };
+}
+
+function syncNSliderMax(){
+  const mMax=parseInt(V('mMax'))||40;
+  const slider=G('nOff');
+  if(!slider) return;
+  const maxN=Math.max(1, mMax-1);
+  slider.max=maxN;
+  const numInput=G('nOffNum');
+  let cur=parseInt(slider.value)||1;
+  if(cur>maxN){ cur=maxN; slider.value=cur; if(numInput) numInput.max=maxN; if(G('nOffV')) G('nOffV').textContent=cur; }
+  if(numInput){ numInput.max=maxN; }
+}
+
+// ── Prime step / all-primes cycle ──
+let allPrimesMode=false, allPrimesRAF=null, allPrimesInterval=null;
+
+function stepPrime(dir){
+  stopAllPrimes();
+  const sel=G('primeSelect'); if(!sel||!sel.options.length) return;
+  let idx=sel.selectedIndex+dir;
+  idx=Math.max(0,Math.min(sel.options.length-1,idx));
+  sel.selectedIndex=idx;
+  syncPSlider();
+  onCtrl();
+}
+
+function toggleAllPrimes(){
+  if(allPrimesMode){ stopAllPrimes(); return; }
+  allPrimesMode=true;
+  const btn=G('allPrimesBtn');
+  if(btn) btn.style.borderColor='#c49b38';
+  // cycle through primes at anim speed
+  function cycleNext(){
+    const sel=G('primeSelect'); if(!sel) return;
+    let idx=sel.selectedIndex+1;
+    if(idx>=sel.options.length) idx=0;
+    sel.selectedIndex=idx;
+    syncPSlider();
+    render();
+  }
+  const speed=parseFloat(V('animSpeed'))||2;
+  allPrimesInterval=setInterval(cycleNext, speed*800);
+}
+
+function stopAllPrimes(){
+  allPrimesMode=false;
+  if(allPrimesInterval){ clearInterval(allPrimesInterval); allPrimesInterval=null; }
+  const btn=G('allPrimesBtn');
+  if(btn) btn.style.borderColor='#8b6310';
+}
+
+function syncPSlider(){
+  const sel=G('primeSelect'); if(!sel) return;
+  const ps=primesUpTo(parseInt(V('mMax'))||40);
+  const pv=parseInt(sel.value)||5;
+  const idx=ps.indexOf(pv);
+  if(G('pSlider')){ G('pSlider').max=ps.length; G('pSlider').value=idx>=0?idx+1:1; }
+  if(G('pSliderV')) G('pSliderV').textContent=pv;
 }
 
 // ════════════════════════════════════════════════════
@@ -477,21 +602,21 @@ function drawBackground(p,W,H){
 // LIFT TRAJECTORIES — connect consecutive appearances of each r
 // ════════════════════════════════════════════════════
 function drawAllLiftTrajectories(p){
-  const {mMax,mode}=p;
-  ctx.lineWidth=0.7;
+  const {mMax,liftLW,liftAlpha}=p;
+  const lw=liftLW||1.0, al=liftAlpha||0.35;
+  ctx.lineWidth=lw;
   for(let r=1;r<mMax;r++){
     let prev=null;
     for(let M=r+1;M<=mMax;M++){
       if(gcd(r,M)!==1){prev=null;continue;}
       const pos=coordFn(M,r);
       if(prev){
-        // check consecutive (no valid M skipped)
         let consec=true;
         for(let mm=prev.M+1;mm<M;mm++)if(gcd(r,mm)===1){consec=false;break;}
         if(consec){
           const lifts=gcd(r,prev.M+1)===1;
           ctx.beginPath();ctx.moveTo(prev.x,prev.y);ctx.lineTo(pos.x,pos.y);
-          ctx.strokeStyle=lifts?'rgba(78,205,150,0.3)':'rgba(200,80,80,0.18)';
+          ctx.strokeStyle=lifts?`rgba(78,205,150,${al})`:`rgba(200,80,80,${(al*0.6).toFixed(2)})`;
           ctx.stroke();
         }
       }
@@ -589,14 +714,15 @@ function drawAllPoints(p){
 // PRIME SPIRAL
 // ════════════════════════════════════════════════════
 function drawSpiral(p){
-  const {mMax,p:prime,ptSz,showLifts}=p;
+  const {mMax,p:prime,ptSz,showLifts,liftLW,liftAlpha}=p;
+  const lw=liftLW||1.0, al=liftAlpha||0.35;
   let lT=null,lB=null;
   for(let M=2;M<=mMax;M++){
     if(gcd(prime,M)!==1)continue;
     const pos=coordFn(M,prime),top=prime/M>0.5;
     if(showLifts){
-      if(top&&lT){ctx.beginPath();ctx.moveTo(lT.x,lT.y);ctx.lineTo(pos.x,pos.y);ctx.strokeStyle='rgba(78,205,196,0.45)';ctx.lineWidth=1.2;ctx.stroke();}
-      if(!top&&lB){ctx.beginPath();ctx.moveTo(lB.x,lB.y);ctx.lineTo(pos.x,pos.y);ctx.strokeStyle='rgba(255,140,105,0.45)';ctx.lineWidth=1.2;ctx.stroke();}
+      if(top&&lT){ctx.beginPath();ctx.moveTo(lT.x,lT.y);ctx.lineTo(pos.x,pos.y);ctx.strokeStyle=`rgba(78,205,196,${Math.min(1,al*1.3).toFixed(2)})`;ctx.lineWidth=lw*1.2;ctx.stroke();}
+      if(!top&&lB){ctx.beginPath();ctx.moveTo(lB.x,lB.y);ctx.lineTo(pos.x,pos.y);ctx.strokeStyle=`rgba(255,140,105,${Math.min(1,al*1.3).toFixed(2)})`;ctx.lineWidth=lw*1.2;ctx.stroke();}
     }
     if(top)lT=pos;else lB=pos;
     ctx.beginPath();ctx.arc(pos.x,pos.y,ptSz,0,2*Math.PI);
@@ -607,13 +733,30 @@ function drawSpiral(p){
 // ════════════════════════════════════════════════════
 // LABELS
 // ════════════════════════════════════════════════════
+function getLabel(r,M,theta,fmt){
+  switch(fmt){
+    case 'r':     return `${r}`;
+    case 'rM':    return `${r}/${M}`;
+    case 'rMdec': return (r/M).toFixed(3);
+    case 'deg':   return (theta*180/Math.PI).toFixed(1)+'°';
+    case 'pi':    return (theta/Math.PI).toFixed(3)+'π';
+    case 'rad':   return theta.toFixed(3);
+    case 'Mr':    return `${M}:${r}`;
+    case 'gcd':   return `${gcd(r,M+1)}`;
+    default:      return `${r}`;
+  }
+}
+
 function drawAllLabels(p){
-  const {ptSz,mMax}=p;
-  if(mMax>30)return; // too many labels for large M
-  ctx.font=`${Math.max(7,ptSz*2.5)}px monospace`;
-  coordMap.forEach(({x,y,M,r})=>{
-    ctx.fillStyle='rgba(200,180,140,0.7)';ctx.textAlign='left';
-    ctx.fillText(`${r}/${M}`,x+ptSz+2,y+3);
+  const {ptSz,mMax,labelSz,labelFmt,labelMaxM}=p;
+  const maxM=Math.min(labelMaxM||20, mMax);
+  ctx.font=`${labelSz||9}px monospace`;
+  ctx.textAlign='left';
+  coordMap.forEach(({x,y,M,r,theta})=>{
+    if(M>maxM) return;
+    const txt=getLabel(r,M,theta,labelFmt);
+    ctx.fillStyle='rgba(200,180,140,0.75)';
+    ctx.fillText(txt, x+ptSz+2, y+3);
   });
 }
 
@@ -621,10 +764,11 @@ function drawClickedHighlight(pt,p){
   const pos=coordFn(pt.M,pt.r);
   ctx.beginPath();ctx.arc(pos.x,pos.y,p.ptSz*2.5,0,2*Math.PI);
   ctx.strokeStyle='#e8c96a';ctx.lineWidth=1.5;ctx.stroke();
-  // Draw label
-  ctx.font='10px monospace';ctx.fillStyle='#e8c96a';ctx.textAlign='left';
-  const label=`r=${pt.r} M=${pt.M}`;
-  ctx.fillText(label,pos.x+p.ptSz*3,pos.y+4);
+  // show label in current format
+  const txt=getLabel(pt.r,pt.M,pt.theta,p.labelFmt);
+  ctx.font=`${Math.max(10,p.labelSz||9)}px monospace`;
+  ctx.fillStyle='#e8c96a';ctx.textAlign='left';
+  ctx.fillText(txt, pos.x+p.ptSz*3, pos.y+4);
 }
 
 // ════════════════════════════════════════════════════
@@ -642,16 +786,27 @@ function updateArrInfo(p){
 
 function updateSpiralTable(p){
   const div=G('spiralTable');
+  if(!div) return;
   const titleEl=G('spiralTitle');
-  if(titleEl) titleEl.textContent=`p=${p.p} Spiral`;
-  const {mMax,p:prime}=p;
+  if(titleEl) titleEl.textContent=`p=${p.p} · equator M=${2*p.p}`;
+  const {mMax,p:prime,customR}=p;
   const lim=Math.min(mMax,3*prime+2);
   let html='';
   for(let M=prime+1;M<=lim;M++){
     const on=gcd(prime,M)===1,frac=(prime/M).toFixed(3),top=prime/M>0.5;
     const mir=M-prime,mOn=mir>=1&&gcd(mir,M)===1,mL=mOn&&gcd(mir,M+1)===1;
-    if(!on)html+=`<div class="gp">M=${M} ${frac} GAP</div>`;
-    else html+=`<div class="${top?'tp':'bt'}">M=${M} ${frac} ${top?'▲':'▼'} mir=${mir}${mOn?(mL?' ✓':' ✗'):''}</div>`;
+    if(!on) html+=`<div class="gp">M=${M} ${frac} — GAP gcd=${gcd(prime,M)}</div>`;
+    else    html+=`<div class="${top?'tp':'bt'}">M=${M} ${frac} ${top?'▲':'▼'} mir=${mir}${mOn?(mL?' ✓lift':' ✗block'):' off'}</div>`;
+  }
+  if(customR && customR>=1){
+    html+=`<div class="pttl" style="margin-top:8px;font-size:7px;">r=${customR} path</div>`;
+    let count=0;
+    for(let M=customR+1; M<=mMax && count<12; M++){
+      if(gcd(customR,M)!==1) continue;
+      const frac=(customR/M).toFixed(3), lifts=gcd(customR,M+1)===1;
+      html+=`<div style="color:${lifts?'#ff9f69':'#884433'}">M=${M} ${frac} ${lifts?'✓':'✗'}</div>`;
+      count++;
+    }
   }
   div.innerHTML=html;
 }
@@ -777,11 +932,38 @@ function onPSlider(){
 // FORMULA
 // ════════════════════════════════════════════════════
 function updateFormula(n){
-  const up=n===1?'<b style="color:#ff4466">NEVER lifts</b>':`iff gcd((M+${n})/2, ${n+1})=1`;
-  G('nFormula').innerHTML=`r=(M+${n})/2 → ½ above<br>lifts: ${up}<br><br>r=(M−${n})/2 → ½ below<br>lifts: iff gcd((M−${n})/2,M+1)=1`;
+  const parity=n%2===0?'even M':'odd M';
+  const up=n===1?'<b style="color:#ff4466">NEVER lifts</b>':`iff gcd((M+${n})/2, M+1)=1`;
+  G('nFormula').innerHTML=
+    `Active on <b style="color:#e8c96a">${parity}</b> (n and M same parity)<br>`+
+    `r=(M+${n})/2 → ½ above<br>lifts: ${up}<br><br>`+
+    `r=(M−${n})/2 → ½ below<br>lifts: iff gcd((M−${n})/2,M+1)=1`;
 }
-function setN(v){G('nOff').value=v;G('nOffV').textContent=v;updateFormula(v);onCtrl();}
-function onNChange(){const n=parseInt(V('nOff'));G('nOffV').textContent=n;updateFormula(n);onCtrl();}
+function setN(v){
+  const mMax=parseInt(V('mMax'))||40;
+  v=Math.max(1,Math.min(mMax-1,v));
+  G('nOff').value=v;
+  if(G('nOffNum')) G('nOffNum').value=v;
+  if(G('nOffV')) G('nOffV').textContent=v;
+  updateFormula(v);
+  onCtrl();
+}
+function onNChange(){
+  const n=parseInt(V('nOff'))||1;
+  if(G('nOffNum')) G('nOffNum').value=n;
+  if(G('nOffV')) G('nOffV').textContent=n;
+  updateFormula(n);
+  onCtrl();
+}
+function onNNumChange(){
+  const mMax=parseInt(V('mMax'))||40;
+  const v=Math.max(1,Math.min(mMax-1,parseInt(G('nOffNum').value)||1));
+  G('nOffNum').value=v;
+  G('nOff').value=Math.min(v,parseInt(G('nOff').max)||99);
+  if(G('nOffV')) G('nOffV').textContent=v;
+  updateFormula(v);
+  onCtrl();
+}
 
 // ════════════════════════════════════════════════════
 // EXPORT 4K
@@ -879,20 +1061,226 @@ function resize(){
 }
 
 function onCtrl(){
-  G('ptSzV').textContent=V('ptSz');
+  G('ptSzV').textContent=parseFloat(V('ptSz')).toFixed(1);
+  G('liftLWV').textContent=parseFloat(V('liftLW')).toFixed(1);
+  G('liftAlphaV').textContent=parseFloat(V('liftAlpha')).toFixed(2);
   render();
 }
 function onMChange(){
   G('mMaxN').value=V('mMax');
-  updatePrimeSelect();onCtrl();
+  syncNSliderMax();
+  updatePrimeSelect();
+  onCtrl();
 }
 function onMNumChange(){
   const v=Math.max(4,Math.min(600,parseInt(V('mMaxN'))||40));
   G('mMax').value=Math.min(v,150);
-  updatePrimeSelect();onCtrl();
+  syncNSliderMax();
+  updatePrimeSelect();
+  onCtrl();
+}
+
+// ════════════════════════════════════════════════════
+// PER-CANVAS PRESETS
+// Slider-only: p, nOff, mMax, ptSz, liftLW, liftAlpha
+// Never changes: arrangement, color mode, checkboxes
+// ════════════════════════════════════════════════════
+const CANVAS_PRESETS = {
+  concentric: [
+    {name:'Classic p=5',    p:5,  mMax:40, ptSz:2.5, nOff:1,  liftLW:1.0, liftAlpha:0.35},
+    {name:'Big p=7',        p:7,  mMax:50, ptSz:2.0, nOff:1,  liftLW:1.5, liftAlpha:0.4 },
+    {name:'p=11 n=3',       p:11, mMax:45, ptSz:2.0, nOff:3,  liftLW:1.2, liftAlpha:0.3 },
+    {name:'Small dense',    p:3,  mMax:30, ptSz:3.5, nOff:1,  liftLW:2.0, liftAlpha:0.5 },
+    {name:'n=9 paths',      p:7,  mMax:40, ptSz:2.0, nOff:9,  liftLW:0.8, liftAlpha:0.25},
+    {name:'p=13 wide',      p:13, mMax:60, ptSz:1.5, nOff:1,  liftLW:1.0, liftAlpha:0.3 },
+    {name:'n=5 thin',       p:5,  mMax:35, ptSz:1.8, nOff:5,  liftLW:0.6, liftAlpha:0.4 },
+    {name:'Heavy lift',     p:7,  mMax:40, ptSz:2.0, nOff:1,  liftLW:3.5, liftAlpha:0.6 },
+    {name:'p=17 sparse',    p:17, mMax:80, ptSz:1.2, nOff:1,  liftLW:1.0, liftAlpha:0.2 },
+    {name:'n=7 full',       p:5,  mMax:42, ptSz:2.0, nOff:7,  liftLW:1.2, liftAlpha:0.35},
+  ],
+  fermat: [
+    {name:'Unit π p=5',     p:5,  mMax:50, ptSz:2.0, nOff:1,  liftLW:1.5, liftAlpha:0.4 },
+    {name:'Deep p=7',       p:7,  mMax:70, ptSz:1.5, nOff:1,  liftLW:1.0, liftAlpha:0.3 },
+    {name:'p=11 n=3',       p:11, mMax:55, ptSz:1.8, nOff:3,  liftLW:1.2, liftAlpha:0.35},
+    {name:'Dense p=3',      p:3,  mMax:40, ptSz:3.0, nOff:1,  liftLW:2.0, liftAlpha:0.5 },
+    {name:'Wide p=13',      p:13, mMax:80, ptSz:1.2, nOff:1,  liftLW:0.8, liftAlpha:0.25},
+    {name:'n=9 spiral',     p:7,  mMax:50, ptSz:2.0, nOff:9,  liftLW:1.0, liftAlpha:0.3 },
+    {name:'p=17 100rings',  p:17, mMax:100,ptSz:1.0, nOff:1,  liftLW:1.0, liftAlpha:0.3 },
+    {name:'Thick p=5',      p:5,  mMax:45, ptSz:2.5, nOff:1,  liftLW:4.0, liftAlpha:0.55},
+    {name:'p=7 n=5',        p:7,  mMax:55, ptSz:1.8, nOff:5,  liftLW:1.2, liftAlpha:0.4 },
+    {name:'p=23 deep',      p:23, mMax:120,ptSz:0.8, nOff:1,  liftLW:0.8, liftAlpha:0.2 },
+  ],
+  farey: [
+    {name:'Classic p=5',    p:5,  mMax:50, ptSz:1.5, nOff:1,  liftLW:0.8, liftAlpha:0.3 },
+    {name:'Dense M=80',     p:7,  mMax:80, ptSz:1.0, nOff:1,  liftLW:0.5, liftAlpha:0.2 },
+    {name:'p=11',           p:11, mMax:60, ptSz:1.2, nOff:1,  liftLW:0.8, liftAlpha:0.25},
+    {name:'p=3 clear',      p:3,  mMax:40, ptSz:2.0, nOff:1,  liftLW:1.2, liftAlpha:0.4 },
+    {name:'n=3',            p:5,  mMax:50, ptSz:1.5, nOff:3,  liftLW:0.8, liftAlpha:0.3 },
+    {name:'Deep web',       p:13, mMax:100,ptSz:0.8, nOff:1,  liftLW:0.5, liftAlpha:0.15},
+    {name:'p=7 n=5',        p:7,  mMax:55, ptSz:1.3, nOff:5,  liftLW:0.9, liftAlpha:0.3 },
+    {name:'Ford dense',     p:5,  mMax:70, ptSz:1.0, nOff:1,  liftLW:0.6, liftAlpha:0.2 },
+    {name:'p=17',           p:17, mMax:90, ptSz:0.8, nOff:1,  liftLW:0.5, liftAlpha:0.18},
+    {name:'p=5 n=9',        p:5,  mMax:48, ptSz:1.5, nOff:9,  liftLW:0.8, liftAlpha:0.28},
+  ],
+  strip: [
+    {name:'Half-line p=5',  p:5,  mMax:40, ptSz:2.0, nOff:1,  liftLW:1.2, liftAlpha:0.4 },
+    {name:'p=7 n=3',        p:7,  mMax:50, ptSz:1.8, nOff:3,  liftLW:1.5, liftAlpha:0.45},
+    {name:'All n paths',    p:5,  mMax:40, ptSz:1.5, nOff:1,  liftLW:1.0, liftAlpha:0.35},
+    {name:'p=11 wide',      p:11, mMax:60, ptSz:1.5, nOff:1,  liftLW:1.2, liftAlpha:0.35},
+    {name:'n=7',            p:5,  mMax:45, ptSz:2.0, nOff:7,  liftLW:1.0, liftAlpha:0.4 },
+    {name:'Dense M=80',     p:13, mMax:80, ptSz:1.0, nOff:1,  liftLW:0.8, liftAlpha:0.25},
+    {name:'Heavy p=7',      p:7,  mMax:45, ptSz:2.0, nOff:1,  liftLW:3.5, liftAlpha:0.6 },
+    {name:'p=3 thin',       p:3,  mMax:30, ptSz:2.5, nOff:1,  liftLW:0.5, liftAlpha:0.4 },
+    {name:'n=5 p=11',       p:11, mMax:55, ptSz:1.5, nOff:5,  liftLW:1.2, liftAlpha:0.4 },
+    {name:'p=17 deep',      p:17, mMax:90, ptSz:1.0, nOff:1,  liftLW:1.0, liftAlpha:0.3 },
+  ],
+};
+
+function getCanvasPresets(){ return CANVAS_PRESETS[V('arrSel')]||CANVAS_PRESETS.concentric; }
+
+function buildPresetButtons(){
+  const cont=G('presetBtns'); if(!cont) return;
+  cont.innerHTML='';
+  const prs=getCanvasPresets();
+  prs.forEach((pr,i)=>{
+    const b=document.createElement('button');
+    b.textContent=i+1;
+    b.title=pr.name;
+    b.className='xb';
+    b.style.cssText='padding:2px 7px;font-size:9px;';
+    b.onclick=()=>applyPreset(i);
+    cont.appendChild(b);
+  });
+  const lbl=G('presetArrLabel');
+  if(lbl) lbl.textContent=V('arrSel')+' presets';
+}
+
+function applyPreset(i){
+  const prs=getCanvasPresets();
+  const pr=prs[Math.min(i,prs.length-1)];
+  if(!pr) return;
+  // Only touch numeric/slider values — never arrangement or checkboxes
+  G('mMax').value=Math.min(pr.mMax,150);
+  G('mMaxN').value=pr.mMax;
+  G('ptSz').value=pr.ptSz;
+  G('liftLW').value=pr.liftLW;
+  G('liftAlpha').value=pr.liftAlpha;
+  syncNSliderMax();
+  // clamp nOff to valid range
+  let n=pr.nOff; if(n>parseInt(G('nOff').max)) n=parseInt(G('nOff').max); if(n<1) n=1;
+  G('nOff').value=n;
+  if(G('nOffV')) G('nOffV').textContent=n;
+  updateFormula(n);
+  // set p
+  updatePrimeSelect();
+  const ps=primesUpTo(parseInt(G('mMax').value));
+  const closestP=ps.length?ps.reduce((a,b)=>Math.abs(b-pr.p)<Math.abs(a-pr.p)?b:a,ps[0]):5;
+  G('primeSelect').value=closestP;
+  syncPSlider();
+  if(G('animStatus')) G('animStatus').textContent=pr.name;
+  onCtrl();
+}
+
+// ════════════════════════════════════════════════════
+// ANIMATION — only interpolates numeric sliders
+// Never changes arrangement, color mode, or checkboxes
+// Continues on canvas switch with that canvas's presets
+// ════════════════════════════════════════════════════
+let animRAF=null, animRunning=false, animPresetIdx=0, animStartTime=0, animFromState=null;
+const ANIM_SLIDERS=['mMax','ptSz','nOff','liftLW','liftAlpha'];
+
+function captureState(){
+  return{
+    mMax:parseFloat(V('mMax'))||40, ptSz:parseFloat(V('ptSz'))||2.5,
+    nOff:parseFloat(V('nOff'))||1, liftLW:parseFloat(V('liftLW'))||1.0,
+    liftAlpha:parseFloat(V('liftAlpha'))||0.35,
+  };
+}
+function lerp(a,b,t){ return a+(b-a)*t; }
+function easeInOut(t){ return t<0.5?2*t*t:1-Math.pow(-2*t+2,2)/2; }
+
+function animStep(ts){
+  if(!animRunning) return;
+  const dur=(parseFloat(V('animSpeed'))||2)*1000;
+  const t=Math.min((ts-animStartTime)/dur,1);
+  const et=easeInOut(t);
+  const prs=getCanvasPresets();
+  const pr=prs[animPresetIdx%prs.length];
+  const toState={
+    mMax:Math.min(pr.mMax,150), ptSz:pr.ptSz,
+    nOff:pr.nOff, liftLW:pr.liftLW, liftAlpha:pr.liftAlpha,
+  };
+  ANIM_SLIDERS.forEach(k=>{
+    const val=lerp(animFromState[k]||0, toState[k], et);
+    if(k==='nOff'){
+      let v=Math.round(val); if(v%2===0) v++; if(v<1) v=1;
+      const mx=parseInt(G('nOff').max)||99; if(v>mx) v=mx; if(v<1) v=1;
+      G('nOff').value=v;
+    } else { G(k).value=val; }
+  });
+  // Animate p slider (snap to nearest prime)
+  const pFrom=parseInt(animFromState.pIdx)||1;
+  const pTo=pr.p;
+  const ps=primesUpTo(parseInt(G('mMax').value)||40);
+  const targetIdx=ps.findIndex(pv=>pv>=pTo);
+  const fromIdx=parseInt(G('pSlider').value)||1;
+  const interpIdx=Math.round(lerp(fromIdx-1, Math.max(0,targetIdx), et));
+  if(ps[interpIdx]){ G('pSlider').value=interpIdx+1; G('primeSelect').value=ps[interpIdx]; if(G('pSliderV')) G('pSliderV').textContent=ps[interpIdx]; }
+
+  // Update display values
+  if(G('nOffV')) G('nOffV').textContent=G('nOff').value;
+  if(G('ptSzV')) G('ptSzV').textContent=parseFloat(G('ptSz').value).toFixed(1);
+  if(G('liftLWV')) G('liftLWV').textContent=parseFloat(G('liftLW').value).toFixed(1);
+  if(G('liftAlphaV')) G('liftAlphaV').textContent=parseFloat(G('liftAlpha').value).toFixed(2);
+  if(G('animStatus')) G('animStatus').textContent=`${animPresetIdx+1}: ${pr.name}  ${Math.round(t*100)}%`;
+  render();
+  if(t<1){
+    animRAF=requestAnimationFrame(animStep);
+  } else {
+    animPresetIdx=(animPresetIdx+1)%prs.length;
+    animFromState=captureState();
+    animFromState.pIdx=parseInt(G('pSlider').value)||1;
+    animStartTime=performance.now();
+    animRAF=requestAnimationFrame(animStep);
+  }
+}
+
+function toggleAnim(){
+  if(animRunning){ stopAnim(); return; }
+  animRunning=true;
+  animFromState=captureState();
+  animFromState.pIdx=parseInt(G('pSlider').value)||1;
+  animStartTime=performance.now();
+  if(G('animPlayBtn')) G('animPlayBtn').textContent='❚❚ Pause';
+  if(G('animStatus')) G('animStatus').textContent='Playing…';
+  animRAF=requestAnimationFrame(animStep);
+}
+
+function stopAnim(){
+  animRunning=false;
+  if(animRAF){ cancelAnimationFrame(animRAF); animRAF=null; }
+  if(G('animPlayBtn')) G('animPlayBtn').textContent='▶ Play';
+  if(G('animStatus')) G('animStatus').textContent='Stopped.';
+  stopAllPrimes();
+}
+
+// ── Arrangement change: rebuild preset buttons, keep animation running on new presets ──
+function onArrChange(){
+  stopAllPrimes();
+  buildPresetButtons();
+  // if animation was running, reset to first preset of new canvas
+  if(animRunning){
+    animPresetIdx=0;
+    animFromState=captureState();
+    animFromState.pIdx=parseInt(G('pSlider').value)||1;
+    animStartTime=performance.now();
+  }
+  onCtrl();
 }
 
 window.addEventListener('resize',resize);
+buildPresetButtons();
+syncNSliderMax();
 updatePrimeSelect();
 updateFormula(1);
 resize();
