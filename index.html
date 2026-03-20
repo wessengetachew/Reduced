@@ -133,6 +133,37 @@ select, input[type=number] {
       </div>
     </div>
 
+    <!-- ±n/2 SLIDER SECTION -->
+    <div style="background:#141210;border:1px solid #2a2418;border-radius:2px;padding:10px 12px;">
+      <div class="panel-title" style="margin-bottom:10px;">Left-Side Paths (M±n)/2</div>
+      <div style="font-size:9px;color:#5a4a3a;margin-bottom:8px;line-height:1.6;">
+        Track r = (M+n)/2 and r = (M−n)/2 for odd M+n.<br>
+        n=1: the equator-approaching paths.<br>
+        n=3,5,7…: paths offset by n steps inward.
+      </div>
+      <label style="cursor:pointer;color:#7a6a5a;font-size:11px;display:flex;align-items:center;gap:6px;margin-bottom:8px;">
+        <input type="checkbox" id="showLeftPath" checked> Show ±n paths
+      </label>
+      <div class="ctrl-row">
+        <label>n offset</label>
+        <span class="val" id="nOffsetVal">1</span>
+      </div>
+      <input type="range" id="nOffset" min="1" max="20" value="1" step="2">
+      <div style="display:flex;gap:4px;margin-top:4px;flex-wrap:wrap;">
+        <button class="btn" onclick="setN(1)">n=1</button>
+        <button class="btn" onclick="setN(3)">n=3</button>
+        <button class="btn" onclick="setN(5)">n=5</button>
+        <button class="btn" onclick="setN(7)">n=7</button>
+        <button class="btn" onclick="setN(9)">n=9</button>
+      </div>
+      <!-- Show multiple paths at once -->
+      <label style="cursor:pointer;color:#7a6a5a;font-size:11px;display:flex;align-items:center;gap:6px;margin-top:8px;">
+        <input type="checkbox" id="showAllN"> Show n=1,3,5,7,9 all at once
+      </label>
+      <!-- Live formula display -->
+      <div id="nFormula" style="margin-top:8px;font-size:10px;color:#e8c96a;line-height:1.8;background:#0a0a0f;padding:6px 8px;border-radius:2px;"></div>
+    </div>
+
     <div>
       <div class="ctrl-row"><label>Point size</label><span class="val" id="ptSzVal">3</span></div>
       <input type="range" id="ptSz" min="1" max="8" value="3" step="0.5">
@@ -145,8 +176,9 @@ select, input[type=number] {
       <div><span class="dot" style="background:#ff8c69;"></span>Prime p — BOTTOM half</div>
       <div><span class="dot" style="background:#e8c96a;"></span>Mirror M−p</div>
       <div><span class="dot" style="background:#ff9f69;"></span>Custom r path</div>
-      <div><span class="dot" style="background:#cc88ff;"></span>(M−1)/2 path — alternates lift</div>
-      <div><span class="dot" style="background:#ff4466;"></span>(M+1)/2 path — NEVER lifts</div>
+      <div><span class="dot" style="background:#cc88ff;"></span>(M−n)/2 — lower path</div>
+      <div><span class="dot" style="background:#ff4466;"></span>(M+n)/2 — upper path</div>
+      <div style="font-size:9px;color:#555;margin-top:4px;">n=1 upper never lifts.<br>Other n have richer patterns.</div>
       <div><span class="line-swatch" style="background:#4444aa;"></span>1/2 equator</div>
       <div><span class="line-swatch" style="background:#2a3a2a;"></span>1/n sector lines</div>
     </div>
@@ -246,6 +278,8 @@ function getParams(){
     showMirror: document.getElementById('showMirror').checked,
     showCustom: document.getElementById('showCustom').checked,
     showLeftPath: document.getElementById('showLeftPath').checked,
+    showAllN:   document.getElementById('showAllN').checked,
+    nOffset:    parseInt(document.getElementById('nOffset').value) || 1,
     showHalf:   document.getElementById('showHalf').checked,
     showNLines: document.getElementById('showNLines').checked,
     showRings:  document.getElementById('showRings').checked,
@@ -255,7 +289,7 @@ function getParams(){
 }
 
 function render(){
-  const {mMax,p,customR,showAll,showSpiral,showMirror,showCustom,showLeftPath,
+  const {mMax,p,customR,showAll,showSpiral,showMirror,showCustom,showLeftPath,showAllN,nOffset,
          showHalf,showNLines,showRings,showLifts,ptSz} = getParams();
   const W=canvas.width, H=canvas.height, cx=W/2, cy=H/2;
   const scale=Math.min(W,H)/2.2;
@@ -319,26 +353,51 @@ function render(){
     }
   }
 
-  // Left-side paths (M±1)/2
+  // Left-side paths (M±n)/2
   if(showLeftPath){
-    let lastLo=null, lastHi=null;
-    for(let M=3;M<=mMax;M+=2){
-      const rLo=(M-1)/2, rHi=(M+1)/2;
-      if(gcd(rLo,M)===1){
-        const pos=pt(M,rLo), lifts=gcd(rLo,M+1)===1;
-        if(lastLo){ctx.beginPath();ctx.moveTo(lastLo.x,lastLo.y);ctx.lineTo(pos.x,pos.y);ctx.strokeStyle='rgba(180,120,255,0.2)';ctx.lineWidth=0.8;ctx.stroke();}
-        ctx.beginPath(); ctx.arc(pos.x,pos.y,ptSz*0.9,0,2*Math.PI);
-        ctx.fillStyle=lifts?'#cc88ff':'#9944bb'; ctx.fill();
-        lastLo=pos;
+    const ns = showAllN
+      ? [1,3,5,7,9]
+      : [nOffset];
+    const hues = [280,200,120,40,320];
+
+    ns.forEach((n, ni) => {
+      const hLo = hues[ni%hues.length];
+      const hHi = (hues[ni%hues.length]+40)%360;
+      let lastLo=null, lastHi=null;
+
+      for(let M=n+1; M<=mMax; M++){
+        // r = (M-n)/2: only valid when M-n is even and positive, i.e. M and n same parity
+        if((M-n)%2===0 && (M-n)>0){
+          const rLo=(M-n)/2;
+          if(rLo>=1 && gcd(rLo,M)===1){
+            const pos=pt(M,rLo), lifts=gcd(rLo,M+1)===1;
+            if(lastLo){
+              ctx.beginPath();ctx.moveTo(lastLo.x,lastLo.y);ctx.lineTo(pos.x,pos.y);
+              ctx.strokeStyle=`hsla(${hLo},70%,60%,0.2)`;ctx.lineWidth=0.8;ctx.stroke();
+            }
+            ctx.beginPath();ctx.arc(pos.x,pos.y,ptSz*0.9,0,2*Math.PI);
+            ctx.fillStyle=lifts?`hsl(${hLo},70%,65%)`:`hsl(${hLo},50%,35%)`;
+            ctx.fill();
+            lastLo=pos;
+          }
+        }
+        // r = (M+n)/2: only valid when M+n is even
+        if((M+n)%2===0){
+          const rHi=(M+n)/2;
+          if(rHi<M && gcd(rHi,M)===1){
+            const pos=pt(M,rHi), lifts=gcd(rHi,M+1)===1;
+            if(lastHi){
+              ctx.beginPath();ctx.moveTo(lastHi.x,lastHi.y);ctx.lineTo(pos.x,pos.y);
+              ctx.strokeStyle=`hsla(${hHi},80%,55%,0.2)`;ctx.lineWidth=0.8;ctx.stroke();
+            }
+            ctx.beginPath();ctx.arc(pos.x,pos.y,ptSz*0.9,0,2*Math.PI);
+            ctx.fillStyle=lifts?`hsl(${hHi},80%,65%)`:`hsl(${hHi},60%,30%)`;
+            ctx.fill();
+            lastHi=pos;
+          }
+        }
       }
-      if(rHi<M&&gcd(rHi,M)===1){
-        const pos=pt(M,rHi);
-        if(lastHi){ctx.beginPath();ctx.moveTo(lastHi.x,lastHi.y);ctx.lineTo(pos.x,pos.y);ctx.strokeStyle='rgba(255,50,80,0.2)';ctx.lineWidth=0.8;ctx.stroke();}
-        ctx.beginPath(); ctx.arc(pos.x,pos.y,ptSz*0.9,0,2*Math.PI);
-        ctx.fillStyle='#ff4466'; ctx.fill(); // NEVER lifts
-        lastHi=pos;
-      }
-    }
+    });
   }
 
   // Lift lines for spiral
@@ -443,9 +502,42 @@ function updateTable(p, mMax, customR){
   div.innerHTML=html;
 }
 
+function setN(v){
+  document.getElementById('nOffset').value = v;
+  document.getElementById('nOffsetVal').textContent = v;
+  updateFormula(v);
+  render();
+}
+
+function updateFormula(n){
+  const el = document.getElementById('nFormula');
+  if(!el) return;
+  // Lift condition for (M-n)/2: gcd((M-n)/2, M+1)
+  // gcd((M-n)/2, M+1) = gcd((M-n)/2, (M+1)-(M-n)/2·2+(M-n)/2)
+  // = gcd((M-n)/2, n+1+1) ... let's just show the key identity
+  // (M+n)/2: gcd((M+n)/2, M+1) = gcd((M+n)/2, (M+1)-(M+n)/2) 
+  //        = gcd((M+n)/2, (2-n)/2+1/2)... 
+  // Simpler: gcd((M+n)/2, M+1) = gcd((M+n)/2, M+1)
+  // M+1 - (M+n)/2 = (2M+2-M-n)/2 = (M+2-n)/2
+  // gcd((M+n)/2, (M+2-n)/2) = gcd((M+n)/2, (M+2-n)/2)
+  // Note: (M+n)/2 + (M+2-n)/2 = M+1. So gcd = gcd((M+n)/2, M+1)
+  // For n=1: gcd((M+1)/2, M+1) = (M+1)/2 → NEVER lifts
+  // For general n: gcd((M+n)/2, M+1) = gcd((M+n)/2, n+1) [by Euclidean: M+1 - (M+n)/2 = (M+2-n)/2, iterate]
+  const upper_liftable = n === 1 ? 'NEVER' : `iff gcd((M+${n})/2, ${n+1}) = 1`;
+  const lower_lift = `iff (M−${n})/2 is coprime to M+1`;
+  el.innerHTML =
+    `r = (M+${n})/2:<br>` +
+    `  angle → ½ from <b style="color:#ff8870;">above</b><br>` +
+    `  lifts ${upper_liftable}<br><br>` +
+    `r = (M−${n})/2:<br>` +
+    `  angle → ½ from <b style="color:#cc88ff;">below</b><br>` +
+    `  ${lower_lift}`;
+}
+
 // Wire controls
 const IDS=['mMax','primeSelect','customR','showAll','showSpiral','showMirror',
-           'showCustom','showLeftPath','showHalf','showNLines','showRings','showLifts','ptSz'];
+           'showCustom','showLeftPath','showAllN','nOffset','showHalf','showNLines',
+           'showRings','showLifts','ptSz'];
 IDS.forEach(id=>{
   const el=document.getElementById(id);
   if(!el) return;
@@ -454,10 +546,12 @@ IDS.forEach(id=>{
     document.getElementById('mMaxVal').textContent=`1 – ${mVal}`;
     document.getElementById('mMaxNum').value=mVal;
     document.getElementById('ptSzVal').textContent=document.getElementById('ptSz').value;
+    const n=parseInt(document.getElementById('nOffset').value)||1;
+    document.getElementById('nOffsetVal').textContent=n;
+    updateFormula(n);
     render();
   });
 });
-// Sync number input ↔ slider
 document.getElementById('mMaxNum').addEventListener('input',()=>{
   const v=Math.max(8,Math.min(300,parseInt(document.getElementById('mMaxNum').value)||30));
   document.getElementById('mMax').value=v;
@@ -466,8 +560,9 @@ document.getElementById('mMaxNum').addEventListener('input',()=>{
 });
 
 window.addEventListener('resize',resize);
+updateFormula(1);
 resize();
 
 </script>
 </body>
-    </html>
+</html>
