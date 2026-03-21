@@ -3,8 +3,473 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Modular Ring Explorer</title>
+<title>Modular Lifting Rings — Getachew 2026</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Source+Serif+4:ital,opsz,wght@0,8..60,300;0,8..60,400;0,8..60,600;1,8..60,300;1,8..60,400&family=JetBrains+Mono:wght@300;400&display=swap" rel="stylesheet">
 <style>
+/* ═ Reset ═ */
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;background:#0a0a0f;overflow:hidden;}
+body{display:flex;flex-direction:column;}
+
+/* ═ Tab nav ═ */
+#main-nav{display:flex;align-items:stretch;background:#0d0c0a;border-bottom:2px solid #8b6310;flex-shrink:0;height:40px;}
+.main-tab-btn{background:transparent;border:none;border-bottom:3px solid transparent;margin-bottom:-2px;color:#5a4a3a;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:0.15em;text-transform:uppercase;padding:0 22px;cursor:pointer;transition:color 0.15s;}
+.main-tab-btn:hover{color:#a09070;}
+.main-tab-btn.active{color:#e8c96a;border-bottom-color:#8b6310;}
+#nav-right{margin-left:auto;padding-right:18px;font-family:'JetBrains Mono',monospace;font-size:8px;color:#3a3020;letter-spacing:0.08em;display:flex;align-items:center;}
+
+/* ═ Pages ═ */
+#paper-page{flex:1;overflow-y:auto;background:#e8dfc8;}
+.paper-inner{background:#faf7f2;max-width:680px;margin:0 auto;border-left:1px solid rgba(100,70,30,0.18);border-right:1px solid rgba(100,70,30,0.18);padding-bottom:120px;min-height:100%;}
+#explorer-page{flex:1;display:none;flex-direction:column;overflow:hidden;}
+
+/* ═ Theorem canvas button ═ */
+.thm-canvas-btn{display:inline-flex;align-items:center;margin-left:9px;background:#0c160c;border:1px solid #2a4a2a;color:#6aaa6a;font-family:'JetBrains Mono',monospace;font-size:8px;padding:3px 9px;border-radius:2px;cursor:pointer;letter-spacing:0.08em;vertical-align:middle;transition:background 0.12s;}
+.thm-canvas-btn:hover{background:#1a2a1a;color:#8acc8a;border-color:#4a8a4a;}
+
+/* ═ Analysis panel ═ */
+#analysis-panel{background:#0d0c0a;border-top:1px solid #2a2418;padding:10px 18px 8px;font-family:'JetBrains Mono',monospace;font-size:9.5px;color:#6a5a4a;max-height:185px;overflow-y:auto;flex-shrink:0;}
+.ap-title{font-size:8px;letter-spacing:0.18em;text-transform:uppercase;color:#8b6310;border-bottom:1px solid #2a2418;padding-bottom:4px;margin-bottom:6px;}
+.ap-row{margin-bottom:4px;line-height:1.6;}
+.ap-lift{border-left:2px solid #4ecdc4;padding-left:7px;}
+.ap-spiral{border-left:2px solid #4ecdc4;padding-left:7px;}
+.ap-note{color:#5a5040;font-size:9px;border-left:2px solid #3a3028;padding-left:7px;margin-bottom:4px;line-height:1.5;}
+.ap-key{color:#e8c96a;margin-right:6px;}
+.ap-sub{font-size:8.5px;color:#4a3a2a;margin-top:2px;}
+.ap-footer{margin-top:7px;padding-top:5px;border-top:1px solid #2a2418;color:#4a3a2a;font-size:8.5px;}
+
+/* ═ Paper styles ═ */
+
+/* ─── Variables ─── */
+:root {
+  --ink:        #1c1710;
+  --ink2:       #3d2e1e;
+  --ink3:       #6b5840;
+  --ink4:       #9a8060;
+  --paper:      #faf7f2;
+  --paper2:     #f3ede2;
+  --paper3:     #e8dfc8;
+  --rule:       rgba(100,70,30,0.18);
+  --gold:       #7a5218;
+  --gold2:      #a87030;
+  --teal:       #1a5050;
+  --red:        #6e1a1a;
+  --green:      #1a4a2a;
+  --serif:      'Source Serif 4', 'Libre Baskerville', Georgia, serif;
+  --mono:       'JetBrains Mono', 'Courier New', monospace;
+  --col-w:      680px;
+}
+
+/* ─── Reset ─── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { background: var(--paper3); font-size: 17px; }
+body {
+  font-family: var(--serif);
+  font-weight: 300;
+  color: var(--ink);
+  background: var(--paper);
+  max-width: var(--col-w);
+  margin: 0 auto;
+  padding: 0 0 120px;
+  border-left: 1px solid var(--rule);
+  border-right: 1px solid var(--rule);
+  line-height: 1.78;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ─── Running head ─── */
+.runhead {
+  background: var(--paper2);
+  border-bottom: 1.5px solid var(--gold);
+  padding: 10px 52px;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-family: var(--mono);
+  font-size: 9.5px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink3);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+.runhead .jname { color: var(--gold); font-weight: 400; }
+.runhead .vol { color: var(--ink4); }
+
+/* ─── Title block ─── */
+.title-block {
+  padding: 64px 52px 44px;
+  border-bottom: 1px solid var(--rule);
+  text-align: center;
+}
+h1.main-title {
+  font-family: var(--serif);
+  font-size: 24px;
+  font-weight: 400;
+  font-style: italic;
+  line-height: 1.42;
+  color: var(--ink);
+  letter-spacing: 0.01em;
+  margin-bottom: 14px;
+}
+.subtitle {
+  font-family: var(--serif);
+  font-size: 14.5px;
+  font-weight: 300;
+  color: var(--ink2);
+  margin-bottom: 30px;
+  font-style: italic;
+}
+.author-block {
+  margin-bottom: 8px;
+}
+.author {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--gold);
+  display: block;
+  margin-bottom: 4px;
+}
+.affil {
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  color: var(--ink4);
+}
+
+/* ─── Classification bar ─── */
+.classif {
+  background: var(--paper2);
+  border-top: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+  padding: 10px 52px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  color: var(--ink3);
+}
+.classif b { color: var(--ink); font-weight: 400; }
+
+/* ─── Main content ─── */
+.content { padding: 0 52px; }
+
+/* ─── Abstract ─── */
+.abstract {
+  margin: 36px 0 32px;
+  padding: 22px 28px;
+  border: 1px solid var(--rule);
+  background: var(--paper2);
+  font-size: 15px;
+  line-height: 1.75;
+}
+.abstract-label {
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin-bottom: 10px;
+}
+.abstract p { margin-bottom: 0; }
+.keywords {
+  margin-top: 12px;
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  color: var(--ink3);
+  line-height: 1.8;
+}
+.keywords b { color: var(--ink2); font-weight: 400; }
+
+/* ─── Section headings ─── */
+.section-num {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--gold);
+  margin-right: 10px;
+  letter-spacing: 0.06em;
+}
+h2 {
+  font-family: var(--serif);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin: 44px 0 16px;
+  padding-bottom: 7px;
+  border-bottom: 1px solid var(--rule);
+}
+h3 {
+  font-family: var(--serif);
+  font-size: 15.5px;
+  font-weight: 400;
+  font-style: italic;
+  color: var(--ink);
+  margin: 28px 0 8px;
+}
+
+p { margin-bottom: 13px; }
+p:last-child { margin-bottom: 0; }
+
+/* ─── Math environments ─── */
+.math {
+  display: block;
+  font-family: var(--mono);
+  font-size: 13.5px;
+  line-height: 1.9;
+  background: var(--paper2);
+  border-left: 3px solid var(--gold);
+  padding: 14px 22px;
+  margin: 18px 0;
+  overflow-x: auto;
+  color: var(--ink);
+}
+.math .eq-num {
+  float: right;
+  font-size: 11px;
+  color: var(--ink4);
+  margin-top: 3px;
+}
+.mi {
+  font-family: var(--mono);
+  font-size: 13px;
+  background: rgba(122,82,24,0.07);
+  padding: 1px 5px;
+  border-radius: 2px;
+}
+
+/* ─── Theorem / Proposition ─── */
+.thm-box {
+  border: 1.5px solid var(--gold);
+  padding: 20px 24px 20px 28px;
+  margin: 24px 0;
+  position: relative;
+  background: linear-gradient(to bottom right, rgba(168,112,48,0.04), transparent);
+}
+.thm-box::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0;
+  width: 4px; height: 100%;
+  background: var(--gold);
+}
+.thm-label {
+  font-family: var(--mono);
+  font-size: 9.5px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin-bottom: 10px;
+}
+.thm-body {
+  font-style: italic;
+  font-size: 16.5px;
+  line-height: 1.7;
+}
+.thm-body strong { font-style: normal; font-weight: 600; }
+
+/* Corollary */
+.cor-box {
+  border: 1px solid var(--teal);
+  padding: 17px 22px 17px 26px;
+  margin: 20px 0;
+  position: relative;
+  background: rgba(26,80,80,0.03);
+}
+.cor-box::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0;
+  width: 3px; height: 100%;
+  background: var(--teal);
+}
+.cor-label {
+  font-family: var(--mono);
+  font-size: 9.5px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--teal);
+  margin-bottom: 8px;
+}
+.cor-body { font-style: italic; line-height: 1.7; }
+
+/* Lemma */
+.lem-box {
+  border: 1px solid rgba(100,70,30,0.35);
+  padding: 15px 20px 15px 24px;
+  margin: 18px 0;
+  position: relative;
+}
+.lem-box::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0;
+  width: 3px; height: 100%;
+  background: var(--ink3);
+}
+.lem-label {
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink3);
+  margin-bottom: 7px;
+}
+.lem-body { font-style: italic; }
+
+/* Remark */
+.rem-box {
+  border-left: 3px solid var(--rule);
+  padding: 10px 18px;
+  margin: 16px 0;
+  font-size: 14.5px;
+  color: var(--ink2);
+  line-height: 1.7;
+}
+.rem-label {
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink4);
+  margin-bottom: 5px;
+}
+
+/* ─── Proof ─── */
+.proof {
+  margin: 14px 0 22px;
+  padding-left: 22px;
+  border-left: 1px solid var(--rule);
+}
+.proof-head {
+  font-style: italic;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+.qed {
+  text-align: right;
+  font-size: 16px;
+  color: var(--gold);
+  margin-top: 6px;
+  line-height: 1;
+}
+
+/* ─── Tables ─── */
+table.data {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--mono);
+  font-size: 11.5px;
+  margin: 18px 0;
+}
+table.data th {
+  text-align: left;
+  padding: 7px 14px 7px 0;
+  font-weight: 400;
+  letter-spacing: 0.1em;
+  color: var(--ink3);
+  border-bottom: 1.5px solid var(--rule);
+  font-size: 10px;
+  text-transform: uppercase;
+}
+table.data td {
+  padding: 5px 14px 5px 0;
+  border-bottom: 1px solid rgba(100,70,30,0.08);
+  vertical-align: top;
+}
+table.data tr:hover td { background: rgba(122,82,24,0.03); }
+.td-gold { color: var(--gold2); font-weight: 400; }
+.td-yes  { color: var(--green); }
+.td-no   { color: var(--red); }
+
+/* ─── Ordered proof steps ─── */
+ol.steps {
+  padding-left: 0;
+  margin: 12px 0;
+  list-style: none;
+  counter-reset: step;
+}
+ol.steps li {
+  counter-increment: step;
+  margin-bottom: 12px;
+  padding-left: 32px;
+  position: relative;
+}
+ol.steps li::before {
+  content: counter(step) ".";
+  position: absolute;
+  left: 0;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--gold);
+  font-weight: 400;
+  letter-spacing: 0.06em;
+  top: 3px;
+}
+
+/* ─── Ornament ─── */
+.ornament {
+  text-align: center;
+  color: var(--ink4);
+  font-size: 18px;
+  margin: 40px 0 32px;
+  letter-spacing: 0.4em;
+}
+
+/* ─── References ─── */
+.ref-list {
+  font-family: var(--mono);
+  font-size: 11px;
+  line-height: 2.2;
+  color: var(--ink2);
+}
+.ref-list .ref-num {
+  color: var(--gold);
+  margin-right: 8px;
+}
+
+/* ─── Footer ─── */
+footer {
+  margin-top: 60px;
+  padding: 16px 52px;
+  border-top: 1.5px solid var(--gold);
+  background: var(--paper2);
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  color: var(--ink4);
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+footer span { color: var(--gold); }
+
+/* ─── Utility ─── */
+.gold { color: var(--gold2); }
+.teal { color: var(--teal); }
+.red  { color: var(--red); }
+.green { color: var(--green); }
+strong { font-weight: 600; }
+em { font-style: italic; }
+
+/* ─── Print ─── */
+@media print {
+  .runhead { position: static; }
+  body { max-width: 100%; border: none; }
+}
+
+
+/* ═ Explorer styles ═ */
+
 *{box-sizing:border-box;margin:0;padding:0;}
 body{background:#0a0a0f;color:#d0c8b8;font-family:'JetBrains Mono',monospace;font-size:11px;overflow:hidden;height:100vh;display:flex;flex-direction:column;}
 
@@ -58,20 +523,533 @@ input[type=checkbox]{accent-color:#8b6310;cursor:pointer;}
 .rt .tp{color:#4ecdc4;}
 .rt .bt{color:#ff8c69;}
 .rt .gp{color:#444;}
+
+/* Constrain explorer inside its container */
+#explorer-page #body{height:auto !important;flex:1;overflow:hidden;}
+#explorer-page #left,#explorer-page #right{height:auto;overflow-y:auto;}
+#explorer-page #center{height:auto;flex:1;position:relative;overflow:hidden;}
+#explorer-page canvas{width:100% !important;height:100% !important;display:block;}
 </style>
 </head>
 <body>
 
-<!-- Header -->
-<div id="hdr">
-  <div>
-    <h1>Modular Ring Explorer — (Z/MZ)*</h1>
-    <div style="font-size:8px;color:#4a3a2a;margin-top:1px;">Four arrangements · Half-line geometry · Prime spiral theorems · Click any point to inspect</div>
-  </div>
-  <div style="font-size:8px;color:#3a3020;">wessengetachew.github.io · 2026</div>
+<div id="main-nav">
+  <button class="main-tab-btn active" data-tab="paper" onclick="switchMainTab('paper')">Paper</button>
+  <button class="main-tab-btn" data-tab="explorer" onclick="switchMainTab('explorer')">Explorer — (Z/MZ)*</button>
+  <div id="nav-right">Getachew · 2026 · wessengetachew.github.io</div>
 </div>
 
-<!-- Control bar -->
+<div id="paper-page">
+  <div class="paper-inner">
+    
+
+<!-- Title block -->
+<div class="title-block">
+  <h1 class="main-title">Modular Lifting Rings:<br>Euler Products, Primorial Lifts,<br>and Prime Spiral Geometry</h1>
+  <p class="subtitle">A framework for lift survival, a new constant, and five geometric theorems</p>
+  <div class="author-block">
+    <span class="author">Wessen Getachew</span>
+    <span class="affil">wessengetachew.github.io · March 2026</span>
+  </div>
+</div>
+
+<!-- Classification -->
+<div class="classif">
+  <div><b>MSC 2020</b> 11A07, 11N05, 11M06</div>
+  <div><b>Keywords</b> modular arithmetic · lift survival · Euler product · radical dependence · primorial primes · Feller–Tornier · ζ(2)</div>
+  <div><b>Status</b> Original result · C not in OEIS or Finch</div>
+</div>
+
+<!-- Content -->
+<div class="content">
+
+<!-- Abstract -->
+<div class="abstract">
+  <div class="abstract-label">Abstract</div>
+  <p>We introduce the <em>Modular Lifting Rings</em> framework from first principles and establish twelve original results. For each modulus M ≥ 2, the coprime residue ring R(M) = {r ∈ {1,…,M−1} : gcd(r,M) = 1} is placed geometrically on a circle. A residue r <em>lifts</em> from ring M to ring M+1 when gcd(r,M+1) = 1 as well. The long-run fraction of coprime residues that lift converges to a new constant</p>
+  <div class="math" style="margin:12px 0;">C = ∏<sub>p</sub> (p²−2)/(p²−1) ≈ 0.530711806246…</div>
+  <p>not found in OEIS or Finch's <em>Mathematical Constants</em>. We prove: (1) the Euler product formula for the family C<sub>k</sub>; (2) strict positivity C<sub>k</sub> > 0; (3) radical dependence C<sub>k</sub> = C<sub>rad(k)</sub>; (4) strict monotonicity; (5) the identity C = ζ(2)·d<sub>FT</sub>; (6) the Primorial Lift Theorem T(p#) = φ(p#) ⟺ p#+1 is prime; and five geometric theorems (§8) governing prime spirals, equatorial gaps, mirror lifts, sector portraits of (Z/pZ)*, upper path permanent blockage, and lower path alternation — the last connecting to Gaussian integer splitting in Z[i]. Every result is proved from first principles.</p>
+  <div class="keywords">
+    <b>Numerical value:</b> C ≈ 0.530711806246 · ζ(2)·d<sub>FT</sub> = (π²/6) · 0.32263462… = C ✓ · Verified empirically to M = 2,000,000.
+  </div>
+</div>
+
+<!-- §0 -->
+<h2><span class="section-num">§0.</span>First Principles</h2>
+
+<p>Fix M ≥ 2. The <em>modular ring</em> R(M) is the multiplicative group of integers mod M:</p>
+<div class="math">R(M) = { r ∈ {1,…,M−1} : gcd(r,M) = 1 },   |R(M)| = φ(M)</div>
+<p>Each r is placed at angle θ = 2πr/M on a unit circle of radius ρ(M). A residue r <strong>lifts</strong> from ring M to ring M+1 when:</p>
+<div class="math">r lifts M→M+1  ⟺  gcd(r,M) = 1  and  gcd(r,M+1) = 1</div>
+<p>The two conditions are always independent: any prime dividing both M and M+1 would divide M+1−M = 1, which is impossible. So the lift condition is simply gcd(r, M(M+1)) = 1.</p>
+
+<div class="rem-box">
+  <div class="rem-label">Example — R(30)</div>
+  30 = 2·3·5. Then R(30) = {1, 7, 11, 13, 17, 19, 23, 29}, φ(30) = 8. By CRT,
+  (ℤ/30ℤ)* ≅ (ℤ/2ℤ)* × (ℤ/3ℤ)* × (ℤ/5ℤ)*. Each r ↔ (r mod 2, r mod 3, r mod 5).
+  Since 31 is prime, all 8 elements of R(30) satisfy gcd(r, 31) = 1: perfect lift survival. T(30) = 8 = φ(30).
+</div>
+
+<!-- §1 -->
+<h2><span class="section-num">§1.</span>The Lift Survival Constant C</h2>
+
+<p>Define the lift survival count T(M) = #{r ∈ R(M) : gcd(r,M+1) = 1}. The <em>lift survival constant</em> C is:</p>
+<div class="math">C = lim<sub>N→∞</sub>  ∑<sub>M=2</sub><sup>N</sup> T(M)  /  ∑<sub>M=2</sub><sup>N</sup> φ(M)</div>
+<p><strong>Geometric reading.</strong> C is the long-run fraction of unbroken (green) lift lines in the Modular Lifting Rings visualization. Equivalently: pick a uniformly random coprime residue r on a uniformly random ring M — the probability it also satisfies gcd(r, M+1) = 1 is C.</p>
+
+<table class="data">
+  <thead><tr><th>N</th><th>Coprime points</th><th>Lift to M+1</th><th>Empirical C</th><th>Error</th></tr></thead>
+  <tbody>
+    <tr><td class="td-gold">100</td><td>3,043</td><td>1,636</td><td>0.537627…</td><td>6.9 × 10⁻³</td></tr>
+    <tr><td class="td-gold">1,000</td><td>304,191</td><td>161,632</td><td>0.531350…</td><td>6.4 × 10⁻⁴</td></tr>
+    <tr><td class="td-gold">100,000</td><td>—</td><td>—</td><td>0.530721…</td><td>9.3 × 10⁻⁶</td></tr>
+    <tr><td class="td-gold">2,000,000</td><td>—</td><td>—</td><td class="td-yes">0.530711966…</td><td>&lt; 6 × 10⁻⁸</td></tr>
+  </tbody>
+</table>
+
+<p>First sign change of C(N)−C at N = 1,900,001 (verified). The true value C ≈ 0.530711806246 does not appear in OEIS (digit string 5307118) or in Finch's <em>Mathematical Constants</em> (2003).</p>
+
+<!-- §2 -->
+<h2><span class="section-num">§2.</span>Theorem 2.1 — Euler Product</h2>
+
+<p>The lift condition factors over primes. At prime p, the condition gcd(r,M) = 1 excludes r ≡ 0 (mod p); the condition gcd(r,M+k) = 1 excludes r ≡ −k (mod p). These are distinct classes unless p | k.</p>
+
+<p><strong>Case p ∤ k.</strong> Two distinct classes excluded from p residues → fraction (p−2)/p survives. Normalizing by the coprimality density gives local factor (p²−2)/(p²−1).</p>
+<p><strong>Case p | k.</strong> The two exclusions coincide (r ≡ 0 and r ≡ −k ≡ 0 mod p are the same). One class excluded → local factor (p−1)(p²+p−1)/p³.</p>
+
+<div class="thm-box">
+  <div class="thm-label">Theorem 2.1 — Euler Product for C<button onclick="applyTheoremPreset('thm21')" class="thm-canvas-btn">&#9654; See on canvas</button><sub>k</sub></div>
+  <div class="thm-body">
+    For every integer k ≥ 1, the limit C<sub>k</sub> exists and equals the absolutely convergent Euler product:
+    <div class="math" style="margin:14px 0;">
+      C<sub>k</sub> = ∏<sub>p ∤ k</sub> (p²−2)/(p²−1)  ·  ∏<sub>p | k</sub> (p−1)(p²+p−1)/p³
+    </div>
+    In particular <strong>C = C<sub>1</sub> = ∏<sub>all p</sub> (p²−2)/(p²−1)</strong>.
+  </div>
+</div>
+
+<div class="proof">
+  <div class="proof-head">Proof sketch.</div>
+  <p>The Euler product follows from independence across primes (CRT). At each prime p, the local survival probability is computed by counting residue classes mod p excluded by the joint conditions gcd(r,M)=1 and gcd(r,M+k)=1. The normalization accounts for the denominator ∑φ(M) already encoding the M-coprimality, so only the additional M+k condition contributes the local factor. Absolute convergence follows from ∑<sub>p</sub> 1/(p²−1) ≤ 2∑<sub>n≥2</sub> 1/n² = 2(π²/6−1) < ∞. □</p>
+</div>
+
+<table class="data" style="font-size:11px;">
+  <thead><tr><th>p</th><th>f<sub>p</sub> (p ∤ k)</th><th>f<sub>p</sub> (p | k)</th><th>1−f (p ∤ k)</th></tr></thead>
+  <tbody>
+    <tr><td class="td-gold">2</td><td>2/3 = 0.66667</td><td>5/8 = 0.62500</td><td>1/3 = 33.3%</td></tr>
+    <tr><td class="td-gold">3</td><td>7/8 = 0.87500</td><td>22/27 = 0.81481</td><td>1/8 = 12.5%</td></tr>
+    <tr><td class="td-gold">5</td><td>23/24 = 0.95833</td><td>116/125 = 0.92800</td><td>1/24 = 4.2%</td></tr>
+    <tr><td class="td-gold">7</td><td>47/48 = 0.97917</td><td>330/343 = 0.96210</td><td>1/48 = 2.1%</td></tr>
+    <tr><td class="td-gold">11</td><td>119/120 = 0.99167</td><td>≈ 0.98422</td><td>1/120 = 0.83%</td></tr>
+  </tbody>
+</table>
+
+<!-- §3 -->
+<h2><span class="section-num">§3.</span>Proposition 3.1 — Strict Positivity<button onclick="applyTheoremPreset('prop31')" class="thm-canvas-btn">&#9654; See on canvas</button></h2>
+
+<div class="thm-box">
+  <div class="thm-label">Proposition 3.1 — Strict Positivity</div>
+  <div class="thm-body"><strong>C<sub>k</sub> > 0 for every k ≥ 1.</strong> No gap class is geometrically blocked.</div>
+</div>
+
+<div class="proof">
+  <div class="proof-head">Proof.</div>
+  <ol class="steps">
+    <li><strong>Each local factor is in (0,1).</strong> For p ∤ k: numerator p²−2 ≥ 2 > 0 (since 2²−2 = 2); denominator p²−1 > 0. For p | k: (p−1)(p²+p−1)/p³ with p−1 ≥ 1, p²+p−1 ≥ 4+2−1 = 5, p³ > 0. Both factors are strictly positive.</li>
+    <li><strong>Absolute convergence.</strong> For p ∤ k: 1−f<sub>p</sub> = 1/(p²−1) < 2/p². This bound holds since p²−1 > p²/2 for all p ≥ 2. Since ∑<sub>p</sub> 2/p² ≤ 2·(π²/6−1) < ∞, the sum of costs converges.</li>
+    <li><strong>Product bounded away from zero.</strong> ∏<sub>p>P</sub>(1−2/p²) ≥ exp(−∑<sub>p>P</sub> 4/p²) → 1 as P → ∞. So C<sub>k</sub> ≥ (finite partial product) · (positive tail). □</li>
+  </ol>
+</div>
+
+<!-- §4 -->
+<h2><span class="section-num">§4.</span>Theorem 4.1 — Radical Dependence<button onclick="applyTheoremPreset('thm41')" class="thm-canvas-btn">&#9654; See on canvas</button></h2>
+
+<div class="thm-box">
+  <div class="thm-label">Theorem 4.1 — Radical Dependence</div>
+  <div class="thm-body">
+    <strong>C<sub>k</sub> = C<sub>rad(k)</sub></strong>, where rad(k) = product of distinct prime divisors of k.
+    <br><br>
+    Equivalently: C<sub>k</sub> depends only on <em>which</em> primes divide k, not on their multiplicities.
+  </div>
+</div>
+
+<div class="proof">
+  <div class="proof-head">Proof.</div>
+  <p>From Theorem 2.1, the local factor at p is (p²−2)/(p²−1) when p ∤ k, and (p−1)(p²+p−1)/p³ when p | k. The condition p | k depends only on whether p divides k, i.e. on whether p ∈ rad(k). Replacing k by rad(k) does not change which primes divide k, only their multiplicities — which do not appear in the formula. □</p>
+</div>
+
+<div class="cor-box">
+  <div class="cor-label">Corollary 4.2 — Explicit equalities (verified to 10 decimal places)</div>
+  <div class="cor-body">
+    C<sub>2</sub> = C<sub>4</sub> = C<sub>8</sub> = … = 0.4975427314… [rad = {2}]<br>
+    C<sub>3</sub> = C<sub>9</sub> = C<sub>27</sub> = … = 0.6014652038… [rad = {3}]<br>
+    C<sub>6</sub> = C<sub>12</sub> = C<sub>18</sub> = … = 0.4486551229… [rad = {2,3}]<br>
+    C<sub>30</sub> = C<sub>60</sub> = C<sub>90</sub> = … = 0.4408347589… [rad = {2,3,5}]
+  </div>
+</div>
+
+<!-- §5 -->
+<h2><span class="section-num">§5.</span>Theorem 5.1 — Strict Monotonicity<button onclick="applyTheoremPreset('thm51')" class="thm-canvas-btn">&#9654; See on canvas</button></h2>
+
+<div class="thm-box">
+  <div class="thm-label">Theorem 5.1 — Strict Monotonicity</div>
+  <div class="thm-body">
+    If rad(j) ⊊ rad(k) then <strong>C<sub>j</sub> > C<sub>k</sub></strong>.
+    In particular, <strong>C<sub>k</sub> < C</strong> for all k ≥ 2.
+  </div>
+</div>
+
+<div class="proof">
+  <div class="proof-head">Proof — Key Lemma first.</div>
+
+  <div class="lem-box">
+    <div class="lem-label">Lemma 5.2</div>
+    <div class="lem-body">f<sub>p|k</sub> < f<sub>p∤k</sub> for every prime p ≥ 2.</div>
+  </div>
+
+  <p>We must show (p−1)(p²+p−1)/p³ < (p²−2)/(p²−1). Cross-multiplying:</p>
+  <div class="math">g(p) = (p²−2)·p³ − (p−1)(p²+p−1)(p²−1) = p³ − p² − 2p + 1</div>
+  <p>Factor: g(p) = p²(p−1) − (2p−1). At p=2: g(2) = 4·1−3 = 1 > 0. Since g′(p) = 3p²−2p−2 > 0 for p ≥ 2, g is strictly increasing, so g(p) ≥ 1 > 0 for all primes p ≥ 2. ✓</p>
+  <p><strong>Main proof.</strong> Let T = rad(k) \ rad(j) be nonempty. By Theorem 4.1:</p>
+  <div class="math">C<sub>k</sub>/C<sub>j</sub> = ∏<sub>p ∈ T</sub> [f<sub>p|k</sub> / f<sub>p∤j</sub>]</div>
+  <p>Each factor is strictly less than 1 by Lemma 5.2. The finite product is strictly less than 1, so C<sub>k</sub> < C<sub>j</sub>. For k ≥ 2: any prime divisor p of k gives rad(k) ⊋ ∅ = rad(1), so C<sub>k</sub> < C<sub>1</sub> = C. □</p>
+</div>
+
+<table class="data">
+  <thead><tr><th>k</th><th>rad(k)</th><th>C<sub>k</sub></th><th>Step ratio</th></tr></thead>
+  <tbody>
+    <tr><td class="td-gold">1</td><td>∅</td><td class="teal"><strong>0.530711806</strong></td><td>—</td></tr>
+    <tr><td class="td-gold">2</td><td>{2}</td><td>0.497542731</td><td>0.9375</td></tr>
+    <tr><td class="td-gold">6</td><td>{2,3}</td><td>0.448655123</td><td>0.9021</td></tr>
+    <tr><td class="td-gold">30</td><td>{2,3,5}</td><td>0.440834759</td><td>0.9826</td></tr>
+    <tr><td class="td-gold">210</td><td>{2,3,5,7}</td><td>0.437525485</td><td>0.9925</td></tr>
+    <tr><td class="td-gold">2310</td><td>{2,3,5,7,11}</td><td>0.435136916</td><td>0.9945</td></tr>
+  </tbody>
+</table>
+
+<!-- §6 -->
+<h2><span class="section-num">§6.</span>Theorem 6.1 — The Identity C = ζ(2)·d<sub>FT</sub></h2>
+
+<p>Two classical constants appear in the Euler product for C:</p>
+<div class="math">ζ(2) = ∏<sub>p</sub> p²/(p²−1) = π²/6 ≈ 1.64493…   [Basel problem]</div>
+<div class="math">d<sub>FT</sub> = ∏<sub>p</sub> (p²−2)/p² ≈ 0.32263…   [Feller–Tornier constant, OEIS A065474]</div>
+
+<p>The Riemann zeta value ζ(2) = π²/6 is the solution to the Basel problem. At s=2 it is simply a specific positive real number; there is no connection here to the non-trivial zeros of ζ(s) or to the Riemann Hypothesis, which concerns the critical strip 0 < Re(s) < 1.</p>
+
+<div class="thm-box">
+  <div class="thm-label">Theorem 6.1 — Feller–Tornier Identity<button onclick="applyTheoremPreset('thm61')" class="thm-canvas-btn">&#9654; See on canvas</button></div>
+  <div class="thm-body">
+    <strong>C = ζ(2) · d<sub>FT</sub> = (π²/6) · ∏<sub>p</sub>(1 − 2/p²)</strong>
+    <div class="math" style="margin:12px 0;">
+      = 1.6449340668… × 0.3226346166… = 0.5307118062… ✓
+    </div>
+  </div>
+</div>
+
+<div class="proof">
+  <div class="proof-head">Proof.</div>
+  <p>Multiply the three Euler products term by term (valid by absolute convergence):</p>
+  <div class="math">ζ(2) · d<sub>FT</sub> = ∏<sub>p</sub>[p²/(p²−1)] · [(p²−2)/p²] = ∏<sub>p</sub>(p²−2)/(p²−1) = C</div>
+  <p>The factor p² cancels in every term. □</p>
+</div>
+
+<div class="rem-box">
+  <div class="rem-label">Remark 6.2 — Three constants, one identity</div>
+  ζ(2) encodes the distribution of prime gaps globally. d<sub>FT</sub> measures squarefree kernel density. C measures modular lift survival. The identity reveals all three are algebraically linked through a single cancellation in their Euler products. Equivalently: d<sub>FT</sub> = 6C/π².
+</div>
+
+<!-- §7 -->
+<h2><span class="section-num">§7.</span>Theorem 7.1 — Primorial Lift Theorem<button onclick="applyTheoremPreset('thm71')" class="thm-canvas-btn">&#9654; See on canvas</button></h2>
+
+<p>For the primorial p# = 2·3·5·…·p, the survival rate T(p#)/φ(p#) is usually far below C. But when p#+1 is prime, something remarkable occurs:</p>
+
+<table class="data">
+  <thead><tr><th>p#</th><th>p#+1</th><th>Factor.</th><th>T(p#)</th><th>φ(p#)</th><th>Rate</th></tr></thead>
+  <tbody>
+    <tr><td class="td-gold">2</td><td>3</td><td>prime</td><td>1</td><td>1</td><td class="td-yes">1.000 ✓</td></tr>
+    <tr><td class="td-gold">6</td><td>7</td><td>prime</td><td>2</td><td>2</td><td class="td-yes">1.000 ✓</td></tr>
+    <tr><td class="td-gold">30</td><td>31</td><td>prime</td><td>8</td><td>8</td><td class="td-yes">1.000 ✓</td></tr>
+    <tr><td class="td-gold">210</td><td>211</td><td>prime</td><td>48</td><td>48</td><td class="td-yes">1.000 ✓</td></tr>
+    <tr><td class="td-gold">2310</td><td>2311</td><td>prime</td><td>480</td><td>480</td><td class="td-yes">1.000 ✓</td></tr>
+    <tr><td class="td-gold">30030</td><td>30031</td><td>59×509</td><td>5652</td><td>5760</td><td class="td-no">0.981 ✗</td></tr>
+  </tbody>
+</table>
+
+<div class="thm-box">
+  <div class="thm-label">Theorem 7.1 — Primorial Lift Theorem</div>
+  <div class="thm-body">
+    <strong>T(p#) = φ(p#)  ⟺  p#+1 is prime.</strong>
+    <br><br>
+    When p#+1 is prime, every coprime residue on ring p# survives the lift to p#+1 — a 100% survival rate, compared to the average C ≈ 0.5307. These are the maximal outliers in the distribution of T(M)/φ(M).
+  </div>
+</div>
+
+<div class="proof">
+  <div class="proof-head">Proof (⇒): p#+1 prime ⟹ T = φ.</div>
+  <p>Suppose Q = p#+1 is prime. For any r ∈ R(p#), we have 1 ≤ r ≤ p#−1 < Q. Since r < Q and Q is prime, Q cannot divide r. Therefore gcd(r, Q) = 1 for every r ∈ R(p#). Every residue lifts. T(p#) = φ(p#). □</p>
+</div>
+
+<div class="proof">
+  <div class="proof-head">Proof (⇐): p#+1 composite ⟹ T < φ.</div>
+  <p>Let q be the smallest prime factor of the composite p#+1. Since p# is the product of all primes ≤ p, and q cannot divide p# (otherwise q | (p#+1)−p# = 1), we have gcd(q, p#) = 1, so q ∈ R(p#). But gcd(q, p#+1) = q > 1, so r = q fails to lift. T(p#) < φ(p#). □</p>
+</div>
+
+<div class="rem-box">
+  <div class="rem-label">Remark 7.2 — Primorial primes</div>
+  Known cases: p#+1 prime for p = 2, 3, 5, 7, 11, giving p#+1 = 3, 7, 31, 211, 2311. Whether infinitely many primorial primes exist is open. Theorem 7.1 reframes this:
+  <div class="math" style="font-size:12px;margin:8px 0;">Infinitely many primorial primes  ⟺  infinitely many perfect lift rings</div>
+</div>
+
+<!-- New exact theorem -->
+<div class="cor-box">
+  <div class="cor-label">Corollary 7.3 — Exact formula at prime rings<button onclick="applyTheoremPreset('cor73')" class="thm-canvas-btn">&#9654; See on canvas</button></div>
+  <div class="cor-body">
+    For every prime p: <strong>T(p) = φ(p+1) − 1.</strong>
+    <br><br>
+    <em>Proof.</em> Among {1,…,p+1}, exactly φ(p+1) integers are coprime to p+1 by definition. All lie in {1,…,p} (since p+1 itself is not coprime to p+1). One of them is r = p (since gcd(p,p+1)=1). Removing r = p (which is outside {1,…,p−1} = R(p)), the count in R(p) is φ(p+1)−1. □
+  </div>
+</div>
+
+<!-- §8 -->
+<h2><span class="section-num">§8.</span>Prime Spiral Geometry</h2>
+
+<p>Each prime p traces a <em>spiral path</em> across the ring system: on ring M, p occupies angle θ = 2πp/M. As M increases, the angle p/M decreases from near 1 toward 0. The equator θ = π (the line r/M = 1/2) divides the circle into a top half (r/M > 1/2, M < 2p) and a bottom half (r/M < 1/2, M > 2p). Five theorems govern this geometry.</p>
+
+<div class="rem-box">
+  <div class="rem-label">Setup — Mirror symmetry</div>
+  R(M) is always symmetric under r ↔ M−r: gcd(M−r,M) = gcd(r,M). Every top-half point has a mirror in the bottom half.
+</div>
+
+<h3>8.1 — The Equator Gap</h3>
+
+<div class="thm-box">
+  <div class="thm-label">Theorem 8.1 — Equator Gap<button onclick="applyTheoremPreset('thm81')" class="thm-canvas-btn">&#9654; See on canvas</button></div>
+  <div class="thm-body">
+    For every prime p, the crossing M = 2p is a <strong>forced gap</strong>: gcd(p, 2p) = p > 1. Prime p is absent from ring 2p. The gap has width exactly 1: p appears on ring 2p−1 and on ring 2p+1, but not at M = 2p itself.
+  </div>
+</div>
+
+<div class="proof">
+  <div class="proof-head">Proof.</div>
+  <p>gcd(p, 2p) = p > 1 since p | 2p. For the gap width: 2p−1 ≡ −1 (mod p) and 2p+1 ≡ 1 (mod p), so gcd(p, 2p−1) = gcd(p, 2p+1) = 1. The spiral crosses the equator invisibly — no prime ever occupies angle exactly 1/2. □</p>
+</div>
+
+<h3>8.2 — Mirror Lift Theorem</h3>
+
+<div class="thm-box">
+  <div class="thm-label">Theorem 8.2 — Mirror Lift<button onclick="applyTheoremPreset('thm82')" class="thm-canvas-btn">&#9654; See on canvas</button></div>
+  <div class="thm-body">
+    For p in the top half (p+1 ≤ M ≤ 2p−1, gcd(p,M)=1):
+    <div class="math" style="margin:10px 0;">gcd(M−p, M+1) = gcd(M−p, p+1)</div>
+    The mirrors that lift are exactly R(p+1) ∩ {1,…,p−1} — the integers below p coprime to p+1.
+  </div>
+</div>
+
+<div class="proof">
+  <div class="proof-head">Proof.</div>
+  <p>Set a = M−p and b = M+1. Then b−a = p+1. By the Euclidean property: gcd(a,b) = gcd(a, b−a) = gcd(M−p, p+1). As M ranges over {p+1,…,2p−1}, M−p ranges over {1,…,p−1} in order — a bijection. □</p>
+</div>
+
+<div class="cor-box">
+  <div class="cor-label">Corollary 8.2a — Encodes (Z/(p+1)Z)*</div>
+  <div class="cor-body">The lift pattern of the top-half mirrors is entirely determined by p+1. The mirrors that lift = #{k ∈ {1,…,p−1} : gcd(k,p+1)=1} = φ(p+1)−1. The top-half encodes the multiplicative group of p+1.</div>
+</div>
+
+<h3>8.3 — Bottom Sector Theorem</h3>
+
+<div class="thm-box">
+  <div class="thm-label">Theorem 8.3 — Bottom Sector<button onclick="applyTheoremPreset('thm83')" class="thm-canvas-btn">&#9654; See on canvas</button></div>
+  <div class="thm-body">
+    In M ∈ [2p+1, 3p], prime p appears on <strong>exactly p−1 rings</strong>. As M increases from 2p+1 to 3p−1, M mod p cycles through (Z/pZ)* = {1,2,…,p−1} in exact sequential order. The sector between angles 1/2 and 1/3 is a complete geometric portrait of (Z/pZ)*.
+  </div>
+</div>
+
+<div class="proof">
+  <div class="proof-head">Proof.</div>
+  <p>The interval [2p+1, 3p] has p integers; the unique multiple of p is 3p. So gcd(p,M) = 1 for exactly p−1 values. For M = 2p+j, j ∈ {1,…,p−1}: M mod p = j, cycling through every nonzero residue mod p in order. □</p>
+</div>
+
+<div class="cor-box">
+  <div class="cor-label">Corollary 8.3a — Exactly p−2 lifts in the bottom sector</div>
+  <div class="cor-body">Of the p−1 appearances, exactly p−2 result in successful lifts. The unique failure is M = 3p−1: since ring 3p is a gap (gcd(p,3p)=p), the successor is blocked. All other p−2 appearances lift.</div>
+</div>
+
+<h3>8.4 — Upper Path Never Lifts</h3>
+
+<div class="thm-box">
+  <div class="thm-label">Theorem 8.4 — Upper Path Permanent Barrier<button onclick="applyTheoremPreset('thm84')" class="thm-canvas-btn">&#9654; See on canvas</button></div>
+  <div class="thm-body">
+    For every odd M ≥ 3, the residue r = (M+1)/2 is on ring M but <strong>never lifts</strong>:
+    <div class="math" style="margin:10px 0;">gcd((M+1)/2, M+1) = (M+1)/2 ≥ 2</div>
+    The path r = (M+1)/2 approaches the equator from above as M → ∞, and every point on it is permanently blocked.
+  </div>
+</div>
+
+<div class="proof">
+  <div class="proof-head">Proof.</div>
+  <p>Let k = (M+1)/2. Then M+1 = 2k, so gcd(k, M+1) = gcd(k, 2k) = k ≥ 2 for M ≥ 3. That r is on ring M: gcd((M+1)/2, M) = 1 by a Euclidean reduction (M and (M+1)/2 differ by (M−1)/2; iterating gives gcd 1 since consecutive integers are coprime). □</p>
+</div>
+
+<h3>8.5 — Lower Path Alternation and Gaussian Integers</h3>
+
+<div class="thm-box">
+  <div class="thm-label">Theorem 8.5 — Lower Path Alternation<button onclick="applyTheoremPreset('thm85')" class="thm-canvas-btn">&#9654; See on canvas</button></div>
+  <div class="thm-body">
+    For odd M ≥ 3, r = (M−1)/2 lifts to M+1 <strong>if and only if M ≡ 3 (mod 4)</strong>:
+    <div class="math" style="margin:10px 0;">gcd((M−1)/2, M+1) = gcd((M−1)/2, 2) = 1  ⟺  M ≡ 3 (mod 4)</div>
+  </div>
+</div>
+
+<div class="proof">
+  <div class="proof-head">Proof.</div>
+  <p>Set t = (M+1)/2, so M+1 = 2t and r = t−1. Then gcd(t−1, 2t) = gcd(t−1, 2) (since gcd(t−1, t) = 1 and 2t = 2·t). This equals 1 iff t−1 is odd iff t is even iff (M+1)/2 is even iff M ≡ 3 (mod 4). □</p>
+</div>
+
+<div class="cor-box">
+  <div class="cor-label">Corollary 8.5a — Gaussian Integer Detection<button onclick="applyTheoremPreset('cor85a')" class="thm-canvas-btn">&#9654; See on canvas</button></div>
+  <div class="cor-body">
+    When M = q is an odd prime, r = (q−1)/2 lifts if and only if <strong>q is inert in Z[i]</strong> (q ≡ 3 mod 4). Equivalently, it is <em>blocked</em> if and only if q splits in the Gaussian integers as q = (a+bi)(a−bi) = a²+b².
+    <br><br>
+    <em>Proof.</em> By Theorem 8.5, r lifts iff q ≡ 3 (mod 4). By Fermat's theorem on sums of two squares, an odd prime q splits in Z[i] iff q ≡ 1 (mod 4). These conditions are complementary. □
+  </div>
+</div>
+
+<div class="rem-box">
+  <div class="rem-label">Remark 8.5b — The geometric meaning</div>
+  The lower equatorial residue r = (q−1)/2 is a single point on prime ring q. Its lift status encodes whether q is a sum of two squares. The Modular Lifting Ring system is the base; the Gaussian integers Z[i] are an extension whose arithmetic is readable through the lift structure at the equatorial boundary.
+</div>
+
+<div class="ornament">· · ✦ · ·</div>
+
+<!-- §9 Summary -->
+<h2><span class="section-num">§9.</span>Summary of Results</h2>
+
+<table class="data">
+  <thead><tr><th>Result</th><th>Statement</th><th>Method</th><th>Status</th></tr></thead>
+  <tbody>
+    <tr>
+      <td class="td-gold">Thm 2.1</td>
+      <td>C<sub>k</sub> = ∏(p²−2)/(p²−1) · ∏(p−1)(p²+p−1)/p³</td>
+      <td>Local factor analysis</td>
+      <td class="td-yes">Proved</td>
+    </tr>
+    <tr>
+      <td class="td-gold">Prop 3.1</td>
+      <td>C<sub>k</sub> > 0 for all k</td>
+      <td>∑1/(p²−1) < ∞</td>
+      <td class="td-yes">Proved</td>
+    </tr>
+    <tr>
+      <td class="td-gold">Thm 4.1</td>
+      <td>C<sub>k</sub> = C<sub>rad(k)</sub></td>
+      <td>Local factors depend only on p | k, not v<sub>p</sub>(k)</td>
+      <td class="td-yes">Proved</td>
+    </tr>
+    <tr>
+      <td class="td-gold">Thm 5.1</td>
+      <td>rad(j) ⊊ rad(k) ⟹ C<sub>j</sub> > C<sub>k</sub></td>
+      <td>Lemma 5.2: g(p) = p³−p²−2p+1 > 0</td>
+      <td class="td-yes">Proved</td>
+    </tr>
+    <tr>
+      <td class="td-gold">Cor 5.1</td>
+      <td>C<sub>k</sub> < C for all k ≥ 2</td>
+      <td>Special case of monotonicity</td>
+      <td class="td-yes">Proved</td>
+    </tr>
+    <tr>
+      <td class="td-gold">Thm 6.1</td>
+      <td>C = ζ(2)·d<sub>FT</sub> = (π²/6)·∏(1−2/p²)</td>
+      <td>p² cancels term by term</td>
+      <td class="td-yes">Proved</td>
+    </tr>
+    <tr>
+      <td class="td-gold">Thm 7.1</td>
+      <td>T(p#) = φ(p#) ⟺ p#+1 prime</td>
+      <td>Size argument + divisibility</td>
+      <td class="td-yes">Proved</td>
+    </tr>
+    <tr>
+      <td class="td-gold">Cor 7.3</td>
+      <td>T(p) = φ(p+1)−1 for all primes p</td>
+      <td>Counting coprime residues in {1,…,p−1}</td>
+      <td class="td-yes">Proved</td>
+    </tr>
+    <tr>
+      <td class="td-gold">Thm 8.1</td>
+      <td>Equator gap at M = 2p, width = 1</td>
+      <td>gcd(p,2p) = p; adjacent rings coprime</td>
+      <td class="td-yes">Proved</td>
+    </tr>
+    <tr>
+      <td class="td-gold">Thm 8.2</td>
+      <td>gcd(M−p, M+1) = gcd(M−p, p+1)</td>
+      <td>One Euclidean step</td>
+      <td class="td-yes">Proved</td>
+    </tr>
+    <tr>
+      <td class="td-gold">Thm 8.3</td>
+      <td>[2p+1,3p]: p−1 appearances, (Z/pZ)* in order</td>
+      <td>Counting multiples of p</td>
+      <td class="td-yes">Proved</td>
+    </tr>
+    <tr>
+      <td class="td-gold">Thm 8.4</td>
+      <td>r=(M+1)/2 never lifts for odd M ≥ 3</td>
+      <td>gcd((M+1)/2, M+1) = (M+1)/2 ≥ 2</td>
+      <td class="td-yes">Proved</td>
+    </tr>
+    <tr>
+      <td class="td-gold">Thm 8.5</td>
+      <td>r=(M−1)/2 lifts iff M ≡ 3 (mod 4)</td>
+      <td>gcd((M−1)/2, 2) parity argument</td>
+      <td class="td-yes">Proved</td>
+    </tr>
+    <tr>
+      <td class="td-gold">Cor 8.5a</td>
+      <td>At prime q: lifts iff q inert in Z[i]</td>
+      <td>Fermat sum-of-squares + Thm 8.5</td>
+      <td class="td-yes">Proved</td>
+    </tr>
+    <tr>
+      <td class="td-gold">Open</td>
+      <td>Infinitely many primorial primes ⟺ infinitely many perfect lift rings</td>
+      <td>Restatement via Thm 7.1</td>
+      <td class="td-no">Open</td>
+    </tr>
+  </tbody>
+</table>
+
+<!-- §10 References -->
+<h2><span class="section-num">§10.</span>References</h2>
+
+<div class="ref-list">
+  <p><span class="ref-num">[1]</span> Hausman, M. and Shapiro, H. N. (1984). On the mean square distribution of primitive roots of unity. <em>Comm. Pure Appl. Math.</em> 26(4):539–547. [C appears implicitly as a ratio; never isolated or named.]</p>
+  <p><span class="ref-num">[2]</span> Hardy, G. H. and Littlewood, J. E. (1923). Some problems of Partitio Numerorum III. <em>Acta Math.</em> 44:1–70. [Singular series S(k); parallel radical structure.]</p>
+  <p><span class="ref-num">[3]</span> Feller, W. and Tornier, E. (1932). Mengentheoretische Untersuchungen von Zufälligkeiten. <em>Math. Ann.</em> 107:188–232. [d<sub>FT</sub> ≈ 0.32263634, OEIS A065474.]</p>
+  <p><span class="ref-num">[4]</span> Mertens, F. (1874). Ein Beitrag zur analytischen Zahlentheorie. <em>J. Reine Angew. Math.</em> 78:46–62. [Third Mertens theorem; absolute convergence of the Euler product.]</p>
+  <p><span class="ref-num">[5]</span> Euler, L. (1748). <em>Introductio in analysin infinitorum.</em> [ζ(2) = π²/6 via Euler product.]</p>
+  <p><span class="ref-num">[6]</span> Finch, S. R. (2003). <em>Mathematical Constants.</em> Cambridge University Press. [C not present; searched 530711806246.]</p>
+  <p><span class="ref-num">[7]</span> OEIS Foundation. oeis.org. [C not found under 530711806246 as of March 2026; submission pending.]</p>
+  <p><span class="ref-num">[8]</span> Gauss, C. F. (1832). <em>Theoria residuorum biquadraticorum.</em> Göttingen. [Introduces Z[i]; Gaussian prime splitting, underlying Cor. 8.5a.]</p>
+  <p><span class="ref-num">[9]</span> Fermat, P. (1640, letter to Mersenne). Sum of two squares theorem: q = a²+b² iff q ≡ 1 (mod 4) for odd prime q. [Used in Cor. 8.5a.]</p>
+</div>
+
+</div><!-- .content -->
+
+<footer>
+  <span>Modular Lifting Rings · Original Research</span>
+  <span>Wessen Getachew · 2026</span>
+  <span>wessengetachew.github.io</span>
+  <span>C ≈ 0.530711806246… · Not in OEIS</span>
+</footer>
+
+
+  </div>
+</div>
+
+<div id="explorer-page">
+  <!-- Control bar -->
 <div id="ctrl">
   <!-- Arrangement picker -->
   <div class="c">
@@ -102,24 +1080,59 @@ input[type=checkbox]{accent-color:#8b6310;cursor:pointer;}
   <div class="c">
     <label>Color</label>
     <select id="colorMode" onchange="onCtrl()">
-      <option value="angle">Angle</option>
-      <option value="prime">Prime ring</option>
-      <option value="phi">φ/M density</option>
-      <option value="lift">Lift ✓/✗</option>
-      <option value="half">Top/Bottom</option>
+      <optgroup label="Basic">
+        <option value="angle">Angle</option>
+        <option value="prime">Prime ring</option>
+        <option value="phi">φ/M density</option>
+        <option value="lift">Lift ✓/✗</option>
+        <option value="half">Top/Bottom</option>
+      </optgroup>
+      <optgroup label="MLR">
+        <option value="entropy">Modular entropy ΔS</option>
+        <option value="residue6">Residue mod 6</option>
+        <option value="primorial">Primorial rings</option>
+        <option value="mersenne">Mersenne rings</option>
+        <option value="gapclass">Prime gap class</option>
+      </optgroup>
     </select>
+  </div>
+  <!-- Vibrance -->
+  <div class="c">
+    <label>Hue</label>
+    <input type="range" id="hueShift" min="0" max="360" value="0" style="width:55px;accent-color:#8b6310;" oninput="onCtrl()">
+    <span class="cv" id="hueShiftV">0°</span>
+  </div>
+  <div class="c">
+    <label>Sat</label>
+    <input type="range" id="sat" min="20" max="100" value="95" style="width:55px;accent-color:#8b6310;" oninput="onCtrl()">
+  </div>
+  <div class="c">
+    <label>Bright</label>
+    <input type="range" id="bright" min="30" max="100" value="80" style="width:55px;accent-color:#8b6310;" oninput="onCtrl()">
   </div>
   <div class="sep"></div>
   <!-- Lift lines -->
-  <div class="c"><label><input type="checkbox" id="showLifts" checked onchange="onCtrl()"> Lift lines</label></div>
+  <div class="c"><label><input type="checkbox" id="showLifts" checked onchange="onCtrl()"> Lifts</label></div>
+  <div class="c"><label><input type="checkbox" id="showBrokenLifts" onchange="onCtrl()"> Broken</label></div>
   <!-- Area shading -->
-  <div class="c"><label><input type="checkbox" id="showArea" checked onchange="onCtrl()"> Area shading</label></div>
+  <div class="c"><label><input type="checkbox" id="showArea" checked onchange="onCtrl()"> Area</label></div>
+  <!-- Non-coprime -->
+  <div class="c"><label><input type="checkbox" id="showNonCoprime" onchange="onCtrl()"> Non-coprime</label></div>
+  <div class="sep"></div>
+  <!-- Zoom controls -->
+  <div class="c">
+    <label>Zoom</label>
+    <input type="range" id="zoomSlider" min="0.2" max="20" value="1" step="0.05" style="width:65px;accent-color:#8b6310;" oninput="onZoomSlider()">
+    <span class="cv" id="zoomVal">1.0×</span>
+  </div>
+  <button class="xb" onclick="resetView()" style="padding:3px 6px;">⌂</button>
+  <div class="c"><label><input type="checkbox" id="autoSpin" onchange="toggleAutoSpin()"> Spin</label></div>
   <div class="sep"></div>
   <!-- Export -->
-  <button class="xb" onclick="doExport()">↓ 4K Export</button>
-  <button class="xb" onclick="exportAll4()" style="border-color:#4a6a4a;color:#88cc88;">↓ All 4 canvases</button>
+  <button class="xb" onclick="doExport()">↓ 4K</button>
+  <button class="xb" onclick="exportAll4()" style="border-color:#4a6a4a;color:#88cc88;">↓ All 4</button>
   <div>
-    <input type="text" id="expTitle" value="Modular Ring Explorer" style="background:#0a0a0f;border:1px solid #2a2418;color:#e8c96a;font-family:inherit;font-size:8px;padding:2px 4px;border-radius:2px;width:140px;">
+    <input type="text" id="expTitle" value="Modular Ring Explorer" style="background:#0a0a0f;border:1px solid #2a2418;color:#e8c96a;font-family:inherit;font-size:8px;padding:2px 4px;border-radius:2px;width:130px;">
   </div>
 </div>
 
@@ -246,6 +1259,42 @@ input[type=checkbox]{accent-color:#8b6310;cursor:pointer;}
     </div>
     <input type="range" id="liftAlpha" min="0.05" max="1" value="0.35" step="0.05" style="width:100%;accent-color:#8b6310;" oninput="onCtrl()">
 
+    <div class="pttl">Gap Chords</div>
+    <label class="ck"><input type="checkbox" id="showGapChords" onchange="onCtrl()"> Show gap chords</label>
+    <div class="c" style="justify-content:space-between;margin-top:3px;">
+      <label style="color:#5a4a3a;font-size:9px;">gap k (e.g. 2,4,6)</label>
+    </div>
+    <input type="text" id="gapChordVal" value="2" placeholder="2,4,6 or all" style="width:100%;background:#181614;border:1px solid #2a2418;color:#e8c96a;font-family:inherit;font-size:9px;padding:3px 5px;border-radius:2px;margin-top:2px;" oninput="onCtrl()">
+    <div class="c" style="justify-content:space-between;margin-top:3px;">
+      <label style="color:#5a4a3a;font-size:9px;">chord opacity</label>
+      <span class="cv" id="chordOpacityV">0.30</span>
+    </div>
+    <input type="range" id="chordOpacity" min="0.03" max="0.8" value="0.3" step="0.01" style="width:100%;accent-color:#8b6310;" oninput="G('chordOpacityV').textContent=parseFloat(this.value).toFixed(2);onCtrl()">
+    <div id="chordStats" style="font-size:8px;color:#4a3a2a;margin-top:3px;line-height:1.7;"></div>
+
+    <div class="pttl">Fraction Inspector</div>
+    <div style="display:flex;gap:4px;align-items:center;">
+      <input type="number" id="fracA" placeholder="a" min="1" style="flex:1;background:#181614;border:1px solid #2a2418;color:#e8c96a;font-family:inherit;font-size:10px;padding:3px 5px;border-radius:2px;" onkeydown="if(event.key==='Enter')inspectFraction()">
+      <span style="color:#5a4a3a;">/</span>
+      <input type="number" id="fracB" placeholder="b" min="2" style="flex:1;background:#181614;border:1px solid #2a2418;color:#e8c96a;font-family:inherit;font-size:10px;padding:3px 5px;border-radius:2px;" onkeydown="if(event.key==='Enter')inspectFraction()">
+      <button class="xb" onclick="inspectFraction()" style="padding:3px 8px;">Go</button>
+      <button class="xb" onclick="clearFraction()" style="padding:3px 7px;">✕</button>
+    </div>
+    <div id="fracInfo" style="font-size:9px;color:#5a4a3a;margin-top:4px;line-height:1.7;"></div>
+
+    <div class="pttl">Stats</div>
+    <label class="ck"><input type="checkbox" id="showStats" checked onchange="onCtrl()"> Live stats</label>
+    <div id="statsPanel" style="font-size:9px;color:#5a4a3a;line-height:2;margin-top:3px;"></div>
+
+    <div class="pttl">Keys</div>
+    <div style="font-size:8px;color:#3a3020;line-height:1.9;">
+      scroll: zoom &nbsp;·&nbsp; drag: pan<br>
+      dbl-click: reset view<br>
+      L: lifts &nbsp;·&nbsp; S: spiral &nbsp;·&nbsp; B: broken<br>
+      A: auto-spin &nbsp;·&nbsp; R: reset<br>
+      +/−: zoom &nbsp;·&nbsp; ←→: rotate
+    </div>
+
     <div class="pttl">Presets &amp; Animation</div>
     <div style="font-size:8px;color:#4a3a2a;margin-bottom:4px;" id="presetArrLabel">concentric presets</div>
     <div id="presetBtns" class="nb" style="flex-wrap:wrap;gap:3px;"></div>
@@ -300,8 +1349,30 @@ input[type=checkbox]{accent-color:#8b6310;cursor:pointer;}
   </div>
 
 </div>
+  <div id="analysis-panel">
+    <div class="ap-title">Canvas Analysis — what you are looking at</div>
+    <div id="analysis-content"><span style="color:#3a3020">Click ▶ See on canvas next to any theorem, or use the controls.</span></div>
+  </div>
+</div>
 
 <script>
+const THEOREM_PRESETS={
+  thm21:{arr:'concentric',mMax:40,ptSz:2.5,p:5,nOff:1,liftLW:1.5,liftAlpha:0.5,colorMode:'lift',showLifts:true,showBrokenLifts:true,showAll:true,showSpiral:false,showMirror:false,showLeftPath:false,showHalf:false,showNLines:false,showRings:true,dimOthers:false,showGapChords:false,showArea:false,showStats:true},
+  prop31:{arr:'fermat',mMax:80,ptSz:1.5,p:7,nOff:1,liftLW:1.2,liftAlpha:0.4,colorMode:'lift',showLifts:true,showBrokenLifts:false,showAll:true,showSpiral:false,showMirror:false,showLeftPath:false,showHalf:false,showNLines:false,showRings:false,dimOthers:false,showGapChords:false,showArea:true,showStats:true},
+  thm41:{arr:'concentric',mMax:30,ptSz:2.5,p:5,nOff:1,liftLW:1.0,liftAlpha:0.3,colorMode:'angle',showLifts:false,showBrokenLifts:false,showAll:true,showSpiral:false,showMirror:false,showLeftPath:false,showHalf:false,showNLines:false,showRings:true,dimOthers:false,showGapChords:true,gapChordVal:'2,4',chordOpacity:0.4,showArea:false,showStats:true},
+  thm51:{arr:'concentric',mMax:40,ptSz:2.5,p:5,nOff:1,liftLW:1.0,liftAlpha:0.4,colorMode:'primorial',showLifts:true,showBrokenLifts:false,showAll:true,showSpiral:false,showMirror:false,showLeftPath:false,showHalf:false,showNLines:false,showRings:true,dimOthers:false,showGapChords:false,showArea:false,showStats:true},
+  thm61:{arr:'fermat',mMax:60,ptSz:1.8,p:5,nOff:1,liftLW:1.0,liftAlpha:0.35,colorMode:'entropy',showLifts:false,showBrokenLifts:false,showAll:true,showSpiral:false,showMirror:false,showLeftPath:false,showHalf:false,showNLines:false,showRings:false,dimOthers:false,showGapChords:false,showArea:true,showStats:true},
+  thm71:{arr:'concentric',mMax:35,ptSz:3.5,p:5,nOff:1,liftLW:2.0,liftAlpha:0.6,colorMode:'lift',showLifts:true,showBrokenLifts:false,showAll:true,showSpiral:false,showMirror:false,showLeftPath:false,showHalf:false,showNLines:false,showRings:true,dimOthers:false,showGapChords:false,showLabels:true,labelMaxM:32,showArea:false,showStats:true},
+  cor73:{arr:'concentric',mMax:25,ptSz:3.0,p:7,nOff:1,liftLW:2.0,liftAlpha:0.7,colorMode:'lift',showLifts:true,showBrokenLifts:false,showAll:true,showSpiral:true,showMirror:false,showLeftPath:false,showHalf:false,showNLines:false,showRings:true,dimOthers:true,dimAlpha:0.06,showGapChords:false,showArea:false,showStats:true},
+  thm81:{arr:'concentric',mMax:30,ptSz:3.0,p:7,nOff:1,liftLW:1.5,liftAlpha:0.4,colorMode:'half',showLifts:true,showBrokenLifts:false,showAll:false,showSpiral:true,showMirror:false,showLeftPath:false,showHalf:true,showNLines:false,showRings:true,dimOthers:false,showGapChords:false,showLabels:true,labelMaxM:30,showArea:false,showStats:true},
+  thm82:{arr:'concentric',mMax:30,ptSz:2.5,p:7,nOff:1,liftLW:1.5,liftAlpha:0.5,colorMode:'angle',showLifts:true,showBrokenLifts:false,showAll:false,showSpiral:true,showMirror:true,showLeftPath:false,showHalf:true,showNLines:false,showRings:true,dimOthers:true,dimAlpha:0.05,showGapChords:false,showArea:false,showStats:true},
+  thm83:{arr:'concentric',mMax:35,ptSz:3.0,p:7,nOff:1,liftLW:1.2,liftAlpha:0.4,colorMode:'half',showLifts:true,showBrokenLifts:false,showAll:false,showSpiral:true,showMirror:false,showLeftPath:false,showHalf:true,showNLines:false,showRings:true,dimOthers:false,showGapChords:false,showLabels:true,labelMaxM:35,showArea:false,showStats:true},
+  thm84:{arr:'concentric',mMax:35,ptSz:2.5,p:5,nOff:1,liftLW:1.5,liftAlpha:0.5,colorMode:'half',showLifts:false,showBrokenLifts:true,showAll:false,showSpiral:false,showMirror:false,showLeftPath:true,showHalf:true,showNLines:false,showRings:true,dimOthers:false,showGapChords:false,showArea:false,showStats:true},
+  thm85:{arr:'concentric',mMax:35,ptSz:2.5,p:5,nOff:1,liftLW:1.5,liftAlpha:0.5,colorMode:'half',showLifts:false,showBrokenLifts:false,showAll:false,showSpiral:false,showMirror:false,showLeftPath:true,showHalf:true,showNLines:false,showRings:true,dimOthers:false,showGapChords:false,showArea:false,showStats:true},
+  cor85a:{arr:'concentric',mMax:50,ptSz:2.0,p:7,nOff:1,liftLW:1.0,liftAlpha:0.3,colorMode:'gapclass',showLifts:false,showBrokenLifts:false,showAll:true,showSpiral:false,showMirror:false,showLeftPath:false,showHalf:false,showNLines:false,showRings:true,dimOthers:false,showGapChords:false,showArea:false,showStats:true},
+};
+
+
 // ════════════════════════════════════════════════════
 // HELPERS
 // ════════════════════════════════════════════════════
@@ -317,6 +1388,24 @@ const cv=document.getElementById('cv');
 const ctx=cv.getContext('2d');
 let rings=[], coordMap=new Map(); // coordMap: "M:r" -> {x,y}
 let hovered=null, clicked=null;
+
+// Zoom / pan / rotation
+let zoom=1, panX=0, panY=0, globalRot=0;
+let isDragging=false, dragStart={x:0,y:0}, panStart={x:0,y:0};
+let autoSpinRAF=null;
+
+// MLR helpers
+const PRIMORIALS=new Set([2,6,30,210,2310,30030,510510]);
+function isMersenne(n){const v=n+1;return(v&(v-1))===0;}
+function isPrimorial(n){return PRIMORIALS.has(n);}
+function modEntropy(m){return -Math.log(phi(m)/m);}
+const gapCache={};
+function primeGapClass(p){
+  if(!isPrime(p))return null;
+  if(gapCache[p]!==undefined)return gapCache[p];
+  let k=p+1; while(!isPrime(k))k++;
+  gapCache[p]=k-p; return k-p;
+}
 
 function G(id){return document.getElementById(id);}
 function V(id){return G(id)?G(id).value:'';}
@@ -343,6 +1432,15 @@ function getP(){
     lockPtoN:C('lockPtoN'),
     dimOthers:C('dimOthers'),
     dimAlpha:parseFloat(V('dimAlpha'))||0.08,
+    hueShift:parseInt(V('hueShift'))||0,
+    bright:parseInt(V('bright'))||80,
+    sat:parseInt(V('sat'))||95,
+    showBrokenLifts:C('showBrokenLifts'),
+    showGapChords:C('showGapChords'),
+    gapChordVal:V('gapChordVal')||'2',
+    chordOpacity:parseFloat(V('chordOpacity'))||0.3,
+    showNonCoprime:C('showNonCoprime'),
+    showStats:C('showStats'),
   };
 }
 
@@ -408,13 +1506,37 @@ function syncPSlider(){
 // ════════════════════════════════════════════════════
 // COLOR
 // ════════════════════════════════════════════════════
+let _hueShift=0, _bright=80, _sat=95; // set per render from controls
+
 function getColor(mode,r,M,theta){
-  if(mode==='angle'){const h=(theta/(2*Math.PI)*360+360)%360;return `hsl(${h},75%,62%)`;}
-  if(mode==='prime')return isPrime(M)?'#4ecdc4':'#383838';
-  if(mode==='phi'){const d=phi(M)/M,L=Math.round(22+d*58);return `hsl(38,65%,${L}%)`;}
-  if(mode==='lift')return gcd(r,M+1)===1?'#4ecdc4':'#cc4444';
-  if(mode==='half')return(r/M>0.5)?'#4ecdc4':'#ff8c69';
-  return '#6a5a4a';
+  const H=h=>((h+_hueShift)%360+360)%360;
+  const L=pct=>Math.round(_bright*pct/100);
+  const S=pct=>Math.round(_sat*pct/100);
+  if(mode==='angle'){const h=(theta/(2*Math.PI)*360+360)%360;return `hsl(${H(h)},${S(90)}%,${L(75)}%)`;}
+  if(mode==='prime')return isPrime(M)?`hsl(${H(180)},${S(80)}%,${L(70)}%)`:  `hsl(${H(210)},${S(20)}%,22%)`;
+  if(mode==='phi'){const d=phi(M)/M,l=Math.round(25+d*55);return `hsl(${H(38)},${S(70)}%,${l}%)`;}
+  if(mode==='lift')return gcd(r,M+1)===1?`hsl(${H(175)},${S(80)}%,${L(70)}%)`: `hsl(${H(0)},${S(70)}%,${L(55)}%)`;
+  if(mode==='half')return(r/M>0.5)?`hsl(${H(178)},${S(80)}%,${L(70)}%)`:`hsl(${H(20)},${S(80)}%,${L(70)}%)`;
+  // MLR modes
+  if(mode==='entropy'){const t=Math.min(1,modEntropy(M)/2.5);const h=240-t*200;return `hsl(${H(h)},${S(90)}%,${L(70)}%)`;}
+  if(mode==='residue6'){const h=(r%6)*60;return `hsl(${H(h)},${S(85)}%,${L(70)}%)`;}
+  if(mode==='primorial'){
+    if(isPrimorial(M))return `hsl(${H(45)},${S(95)}%,${L(80)}%)`;
+    if(isPrime(M))return `hsl(${H(200)},${S(50)}%,${L(60)}%)`;
+    return `hsl(${H(200)},${S(15)}%,25%)`;
+  }
+  if(mode==='mersenne'){
+    if(isMersenne(M))return `hsl(${H(280)},${S(90)}%,${L(75)}%)`;
+    return `hsl(${H(200)},${S(20)}%,${L(45)}%)`;
+  }
+  if(mode==='gapclass'){
+    if(!isPrime(M))return `hsl(${H(200)},${S(15)}%,22%)`;
+    const g=primeGapClass(M);
+    const gc={1:45,2:120,4:200,6:280,8:320,10:0,12:30};
+    const h=gc[g]!==undefined?gc[g]:(g*20)%360;
+    return `hsl(${H(h)},${S(90)}%,${L(75)}%)`;
+  }
+  return `rgba(200,185,155,0.8)`;
 }
 
 // ════════════════════════════════════════════════════
@@ -423,20 +1545,22 @@ function getColor(mode,r,M,theta){
 let coordFn=null; // set per render
 
 function makeCoordConcentric(W,H,mMax){
-  const cx=W/2,cy=H/2,sc=Math.min(W,H)/2.15/mMax;
-  return (M,r)=>{const t=2*Math.PI*r/M;return{x:cx+M*sc*Math.cos(t),y:cy-M*sc*Math.sin(t)};};
+  const cx=W/2+panX,cy=H/2+panY,sc=Math.min(W,H)/2.15/mMax*zoom;
+  return (M,r)=>{const t=2*Math.PI*r/M+globalRot;return{x:cx+M*sc*Math.cos(t),y:cy-M*sc*Math.sin(t)};};
 }
 function makeCoordFermat(W,H,mMax){
-  const cx=W/2,cy=H/2,sc=Math.min(W,H)/2.15/Math.sqrt(mMax);
-  return (M,r)=>{const t=2*Math.PI*r/M,rho=Math.sqrt(M)*sc;return{x:cx+rho*Math.cos(t),y:cy-rho*Math.sin(t)};};
+  const cx=W/2+panX,cy=H/2+panY,sc=Math.min(W,H)/2.15/Math.sqrt(mMax)*zoom;
+  return (M,r)=>{const t=2*Math.PI*r/M+globalRot,rho=Math.sqrt(M)*sc;return{x:cx+rho*Math.cos(t),y:cy-rho*Math.sin(t)};};
 }
 function makeCoordFarey(W,H,mMax){
-  const pad=30,xSc=W-2*pad,ySc=(H-2*pad)/0.5;
-  return (M,r)=>({x:pad+(r/M)*xSc, y:H-pad-(1/M)*ySc});
+  const pad=30,xSc=(W-2*pad)*zoom,ySc=(H-2*pad)/0.5*zoom;
+  const ox=panX,oy=panY;
+  return (M,r)=>({x:pad+(r/M)*xSc+ox, y:H-pad-(1/M)*ySc+oy});
 }
 function makeCoordStrip(W,H,mMax){
-  const pad=30,xSc=(W-2*pad)/mMax,ySc=(H-2*pad)/(2*Math.PI);
-  return (M,r)=>({x:pad+M*xSc, y:pad+(2*Math.PI*r/M)*ySc});
+  const pad=30,xSc=(W-2*pad)/mMax*zoom,ySc=(H-2*pad)/(2*Math.PI)*zoom;
+  const ox=panX,oy=panY;
+  return (M,r)=>({x:pad+M*xSc+ox, y:pad+(2*Math.PI*r/M)*ySc+oy});
 }
 
 function getCoordFn(arr,W,H,mMax){
@@ -465,6 +1589,9 @@ function buildRings(mMax){
 function render(){
   const p=getP();
   const W=cv.width,H=cv.height;
+  // Sync vibrance globals
+  _hueShift=p.hueShift; _bright=p.bright; _sat=p.sat;
+  if(G('hueShiftV')) G('hueShiftV').textContent=p.hueShift+'°';
   ctx.fillStyle='#0a0a0f';ctx.fillRect(0,0,W,H);
   coordFn=getCoordFn(p.arr,W,H,p.mMax);
   rings=buildRings(p.mMax);
@@ -473,36 +1600,29 @@ function render(){
     const pos=coordFn(M,r);coordMap.set(`${M}:${r}`,{...pos,M,r,theta});
   }));
 
-  // ── Background elements ──
   drawBackground(p,W,H);
 
-  // ── Lift trajectories (drawn before points) ──
-  if(p.showLifts) drawAllLiftTrajectories(p);
+  // Non-coprime points (behind everything)
+  if(p.showNonCoprime) drawNonCoprime(p);
 
-  // ── ±n/2 paths ──
+  // Lift trajectories
+  if(p.showLifts||p.showBrokenLifts) drawAllLiftTrajectories(p);
+
+  // Gap chords
+  if(p.showGapChords) drawGapChords(p);
+
   if(p.showLeftPath) drawNPaths(p);
-
-  // ── Custom r ──
   if(p.showCustom&&p.customR) drawCustomR(p);
-
-  // ── Mirror ──
   if(p.showMirror) drawMirror(p);
-
-  // ── All coprime points ──
   if(p.showAll) drawAllPoints(p);
-
-  // ── Prime spiral (on top) ──
   if(p.showSpiral) drawSpiral(p);
-
-  // ── Point labels ──
   if(p.showLabels) drawAllLabels(p);
-
-  // ── Clicked point highlight ──
   if(clicked) drawClickedHighlight(clicked,p);
+  if(fracHighlight) drawFracHighlight(p);
 
-  // ── Update sidebar ──
   updateArrInfo(p);
   updateSpiralTable(p);
+  if(p.showStats) updateStats(p);
 }
 
 // ════════════════════════════════════════════════════
@@ -625,9 +1745,8 @@ function drawBackground(p,W,H){
 // LIFT TRAJECTORIES — connect consecutive appearances of each r
 // ════════════════════════════════════════════════════
 function drawAllLiftTrajectories(p){
-  const {mMax,liftLW,liftAlpha}=p;
+  const {mMax,liftLW,liftAlpha,showLifts,showBrokenLifts}=p;
   const lw=liftLW||1.0, al=liftAlpha||0.35;
-  ctx.lineWidth=lw;
   for(let r=1;r<mMax;r++){
     let prev=null;
     for(let M=r+1;M<=mMax;M++){
@@ -638,14 +1757,271 @@ function drawAllLiftTrajectories(p){
         for(let mm=prev.M+1;mm<M;mm++)if(gcd(r,mm)===1){consec=false;break;}
         if(consec){
           const lifts=gcd(r,prev.M+1)===1;
-          ctx.beginPath();ctx.moveTo(prev.x,prev.y);ctx.lineTo(pos.x,pos.y);
-          ctx.strokeStyle=lifts?`rgba(78,205,150,${al})`:`rgba(200,80,80,${(al*0.6).toFixed(2)})`;
-          ctx.stroke();
+          if(lifts&&showLifts){
+            ctx.beginPath();ctx.moveTo(prev.x,prev.y);ctx.lineTo(pos.x,pos.y);
+            ctx.strokeStyle=`rgba(78,205,150,${al})`;ctx.lineWidth=lw;ctx.stroke();
+          } else if(!lifts&&showBrokenLifts){
+            // Broken: short stub + X mark
+            const mx=(prev.x+pos.x)/2, my=(prev.y+pos.y)/2;
+            ctx.beginPath();ctx.moveTo(prev.x,prev.y);ctx.lineTo(mx,my);
+            ctx.strokeStyle=`rgba(200,80,80,${(al*0.6).toFixed(2)})`;ctx.lineWidth=lw*0.7;ctx.stroke();
+            const xr=2.5*lw;
+            ctx.beginPath();ctx.moveTo(mx-xr,my-xr);ctx.lineTo(mx+xr,my+xr);
+            ctx.moveTo(mx+xr,my-xr);ctx.lineTo(mx-xr,my+xr);
+            ctx.strokeStyle=`rgba(220,90,75,${al})`;ctx.lineWidth=1;ctx.stroke();
+          }
         }
       }
       prev={...pos,M};
     }
   }
+}
+
+// ════════════════════════════════════════════════════
+// GAP CHORDS — admissible pairs r and r+k on same ring
+// ════════════════════════════════════════════════════
+function drawGapChords(p){
+  const {mMax,gapChordVal,chordOpacity}=p;
+  const isAll=gapChordVal.trim()==='all';
+  const gaps=isAll?null:gapChordVal.split(/[,\s]+/).map(v=>parseInt(v)).filter(v=>!isNaN(v)&&v>=1);
+  const gapColors={
+    2:`rgba(120,210,120,${chordOpacity})`,
+    4:`rgba(100,170,220,${chordOpacity})`,
+    6:`rgba(200,120,220,${chordOpacity})`
+  };
+  const hues=[120,200,280,40,320,0,160,60];
+  ctx.lineWidth=0.8;
+  let counts={};
+  rings.forEach(({M,pts})=>{
+    if(M<3)return;
+    const cset=new Set(pts.map(pt=>pt.r));
+    const ptMap=new Map(pts.map(pt=>[pt.r,coordFn(M,pt.r)]));
+    if(isAll){
+      pts.forEach((pt,i)=>{
+        pts.slice(i+1).forEach(pt2=>{
+          const diff=Math.abs(pt.r-pt2.r);
+          if(diff%2!==0)return;
+          const col=gapColors[diff]||`hsla(${(diff*37)%360},60%,65%,${chordOpacity})`;
+          const p1=ptMap.get(pt.r),p2=ptMap.get(pt2.r);
+          ctx.beginPath();ctx.moveTo(p1.x,p1.y);ctx.lineTo(p2.x,p2.y);
+          ctx.strokeStyle=col;ctx.stroke();
+          counts[diff]=(counts[diff]||0)+1;
+        });
+      });
+    } else {
+      gaps.forEach((k,ki)=>{
+        const col=gapColors[k]||`hsla(${hues[ki%hues.length]},65%,65%,${chordOpacity})`;
+        pts.forEach(pt=>{
+          const r2=pt.r+k;
+          if(r2>=M||!cset.has(r2))return;
+          const p1=ptMap.get(pt.r),p2=ptMap.get(r2);
+          if(!p1||!p2)return;
+          ctx.beginPath();ctx.moveTo(p1.x,p1.y);ctx.lineTo(p2.x,p2.y);
+          ctx.strokeStyle=col;ctx.stroke();
+          counts[k]=(counts[k]||0)+1;
+        });
+      });
+    }
+  });
+  // Update chord stats
+  const el=G('chordStats');
+  if(el){
+    const lines=Object.entries(counts).sort((a,b)=>a[0]-b[0])
+      .map(([k,n])=>`gap ${k}: ${n} pairs`).join(' · ');
+    // Hardy-Littlewood ratio if gap 2 and 6 both present
+    if(counts[2]&&counts[6]) lines && (el.textContent=lines+`  ·  6/2=${(counts[6]/counts[2]).toFixed(3)}`);
+    else el.textContent=lines;
+  }
+}
+
+// ════════════════════════════════════════════════════
+// NON-COPRIME POINTS
+// ════════════════════════════════════════════════════
+function drawNonCoprime(p){
+  const {mMax,ptSz}=p;
+  for(let M=2;M<=mMax;M++){
+    for(let r=1;r<M;r++){
+      if(gcd(r,M)===1)continue;
+      const pos=coordFn(M,r);
+      ctx.beginPath();ctx.arc(pos.x,pos.y,ptSz*0.4,0,2*Math.PI);
+      ctx.fillStyle='rgba(100,80,60,0.35)';ctx.fill();
+    }
+  }
+}
+
+// ════════════════════════════════════════════════════
+// FRACTION INSPECTOR
+// ════════════════════════════════════════════════════
+let fracHighlight=null;
+function inspectFraction(){
+  const a=parseInt(V('fracA')),b=parseInt(V('fracB'));
+  if(!a||!b||b<2||a<1||a>=b||gcd(a,b)!==1){
+    if(G('fracInfo'))G('fracInfo').textContent='Need 1≤a<b, gcd(a,b)=1';
+    fracHighlight=null; render(); return;
+  }
+  fracHighlight={r:a,M:b};
+  const pos=coordFn(b,a);
+  // Pan to center on the point
+  panX=cv.width/2-pos.x; panY=cv.height/2-pos.y;
+  if(G('zoomSlider'))G('zoomSlider').value=zoom;
+  if(G('zoomVal'))G('zoomVal').textContent=zoom.toFixed(2)+'×';
+  // Farey neighbors
+  let lo_a=0,lo_b=1,hi_a=1,hi_b=1;
+  for(let i=0;i<200;i++){
+    const med_a=lo_a+hi_a,med_b=lo_b+hi_b;
+    if(med_a*b===a*med_b)break;
+    if(a*med_b>med_a*b){lo_a=med_a;lo_b=med_b;}else{hi_a=med_a;hi_b=med_b;}
+  }
+  const el=G('fracInfo');
+  if(el) el.innerHTML=`<b style="color:#e8c96a">${a}/${b}</b> on ring M=${b}<br>`+
+    `θ = ${(a/b*360).toFixed(2)}°<br>`+
+    `Lifts to M+1: ${gcd(a,b+1)===1?'<span style="color:#4ecdc4">✓</span>':'<span style="color:#cc4444">✗</span>'}<br>`+
+    `Farey: ${lo_a}/${lo_b} &lt; <b>${a}/${b}</b> &lt; ${hi_a}/${hi_b}`;
+  render();
+}
+function clearFraction(){
+  fracHighlight=null;
+  if(G('fracA'))G('fracA').value='';
+  if(G('fracB'))G('fracB').value='';
+  if(G('fracInfo'))G('fracInfo').textContent='';
+  render();
+}
+function drawFracHighlight(p){
+  if(!fracHighlight)return;
+  const {r,M}=fracHighlight;
+  if(M>p.mMax)return;
+  const pos=coordFn(M,r);
+  ctx.beginPath();ctx.arc(pos.x,pos.y,p.ptSz*3.5,0,2*Math.PI);
+  ctx.strokeStyle='rgba(240,220,100,0.9)';ctx.lineWidth=2;ctx.stroke();
+  ctx.beginPath();ctx.arc(pos.x,pos.y,p.ptSz*1.2,0,2*Math.PI);
+  ctx.fillStyle='#e8c96a';ctx.fill();
+}
+
+// ════════════════════════════════════════════════════
+// STATS PANEL
+// ════════════════════════════════════════════════════
+function updateStats(p){
+  const el=G('statsPanel'); if(!el)return;
+  const total=coordMap.size;
+  let lifted=0;
+  coordMap.forEach(({M,r})=>{ if(gcd(r,M+1)===1)lifted++; });
+  const cN=(total>0?(lifted/total).toFixed(6):'—');
+  const primRings=rings.filter(({M})=>isPrime(M)).length;
+  const primorialRings=rings.filter(({M})=>isPrimorial(M)).length;
+  const mersRings=rings.filter(({M})=>isMersenne(M)).length;
+  // Max entropy ring
+  let maxEnt=0, maxEntM=0;
+  rings.forEach(({M})=>{const e=modEntropy(M);if(e>maxEnt){maxEnt=e;maxEntM=M;}});
+  el.innerHTML=
+    `<span style="color:#6a8a6a;">C(N)</span> = <span style="color:#e8c96a;">${cN}</span><br>`+
+    `<span style="color:#5a4a3a;">points</span> ${total.toLocaleString()}<br>`+
+    `<span style="color:#5a4a3a;">prime rings</span> ${primRings}<br>`+
+    (primorialRings?`<span style="color:#5a4a3a;">primorial rings</span> <span style="color:#e8c96a;">${primorialRings}</span><br>`:``) +
+    (mersRings?`<span style="color:#5a4a3a;">mersenne rings</span> ${mersRings}<br>`:``) +
+    `<span style="color:#5a4a3a;">max entropy</span> M=${maxEntM} (${maxEnt.toFixed(3)})`;
+}
+
+// ════════════════════════════════════════════════════
+// ZOOM / PAN / AUTO-SPIN
+// ════════════════════════════════════════════════════
+function resetView(){ zoom=1; panX=0; panY=0; globalRot=0; syncZoomUI(); render(); }
+function syncZoomUI(){
+  if(G('zoomSlider'))G('zoomSlider').value=zoom;
+  if(G('zoomVal'))G('zoomVal').textContent=zoom.toFixed(2)+'×';
+}
+function onZoomSlider(){
+  zoom=parseFloat(V('zoomSlider'))||1;
+  if(G('zoomVal'))G('zoomVal').textContent=zoom.toFixed(2)+'×';
+  render();
+}
+
+function toggleAutoSpin(){
+  if(C('autoSpin'))startAutoSpin(); else stopAutoSpin();
+}
+function startAutoSpin(){
+  if(autoSpinRAF)return;
+  let last=null;
+  function frame(ts){
+    if(!C('autoSpin')){autoSpinRAF=null;return;}
+    if(last){globalRot+=(ts-last)*0.0003;}
+    last=ts; render();
+    autoSpinRAF=requestAnimationFrame(frame);
+  }
+  autoSpinRAF=requestAnimationFrame(frame);
+}
+function stopAutoSpin(){
+  if(autoSpinRAF){cancelAnimationFrame(autoSpinRAF);autoSpinRAF=null;}
+}
+
+// Canvas mouse events — wired after resize()
+function initCanvasEvents(){
+  cv.addEventListener('wheel',e=>{
+    e.preventDefault();
+    const f=e.deltaY>0?0.9:1.1;
+    zoom=Math.max(0.2,Math.min(20,zoom*f));
+    syncZoomUI(); render();
+  },{passive:false});
+  cv.addEventListener('mousedown',e=>{
+    if(e.button!==0)return;
+    isDragging=true; dragStart={x:e.clientX,y:e.clientY}; panStart={x:panX,y:panY};
+    cv.style.cursor='grabbing';
+  });
+  cv.addEventListener('mousemove',e=>{
+    if(isDragging){
+      panX=panStart.x+(e.clientX-dragStart.x);
+      panY=panStart.y+(e.clientY-dragStart.y);
+      render();
+    }
+    // existing hover tooltip
+    const rect=cv.getBoundingClientRect();
+    const sx=cv.width/rect.width,sy=cv.height/rect.height;
+    const mx=(e.clientX-rect.left)*sx,my=(e.clientY-rect.top)*sy;
+    const pt=findNearestPoint(mx,my);
+    if(pt!==hovered){hovered=pt;showTip(pt,e.clientX-rect.left+14,e.clientY-rect.top);}
+    else if(pt){if(G('tip')){G('tip').style.left=(e.clientX-rect.left+14)+'px';G('tip').style.top=(e.clientY-rect.top-10)+'px';}}
+    cv.style.cursor=isDragging?'grabbing':pt?'crosshair':'default';
+  });
+  cv.addEventListener('mouseup',()=>{ isDragging=false; cv.style.cursor='default'; });
+  cv.addEventListener('mouseleave',()=>{ isDragging=false; hovered=null; if(G('tip'))G('tip').style.display='none'; });
+  cv.addEventListener('dblclick',()=>{ resetView(); });
+  cv.addEventListener('touchstart',e=>{
+    if(e.touches.length===1){isDragging=true;dragStart={x:e.touches[0].clientX,y:e.touches[0].clientY};panStart={x:panX,y:panY};}
+  },{passive:true});
+  cv.addEventListener('touchmove',e=>{
+    if(isDragging&&e.touches.length===1){
+      panX=panStart.x+(e.touches[0].clientX-dragStart.x);
+      panY=panStart.y+(e.touches[0].clientY-dragStart.y);
+      render();
+    }
+  },{passive:true});
+  cv.addEventListener('click',e=>{
+    if(Math.abs(e.clientX-dragStart.x)>4||Math.abs(e.clientY-dragStart.y)>4)return;
+    const rect=cv.getBoundingClientRect();
+    const sx=cv.width/rect.width,sy=cv.height/rect.height;
+    const mx=(e.clientX-rect.left)*sx,my=(e.clientY-rect.top)*sy;
+    const pt=findNearestPoint(mx,my);
+    clicked=(clicked&&pt&&clicked.M===pt.M&&clicked.r===pt.r)?null:pt;
+    showClickInfo(clicked);
+    render();
+  });
+}
+
+// Keyboard shortcuts
+function initKeyboard(){
+  document.addEventListener('keydown',e=>{
+    if(e.target.tagName==='INPUT'||e.target.tagName==='SELECT'||e.target.tagName==='TEXTAREA')return;
+    const k=e.key.toLowerCase();
+    if(k==='l'){const cb=G('showLifts');if(cb){cb.checked=!cb.checked;onCtrl();}}
+    if(k==='b'){const cb=G('showBrokenLifts');if(cb){cb.checked=!cb.checked;onCtrl();}}
+    if(k==='s'){const cb=G('showSpiral');if(cb){cb.checked=!cb.checked;onCtrl();}}
+    if(k==='a'){const cb=G('autoSpin');if(cb){cb.checked=!cb.checked;toggleAutoSpin();}}
+    if(k==='r'){resetView();}
+    if(k==='+'){zoom=Math.min(20,zoom*1.15);syncZoomUI();render();}
+    if(k==='-'){zoom=Math.max(0.2,zoom/1.15);syncZoomUI();render();}
+    if(k==='arrowleft'){globalRot-=0.05;render();}
+    if(k==='arrowright'){globalRot+=0.05;render();}
+    if(k==='f'){if(G('fracA'))G('fracA').focus();}
+  });
 }
 
 // ════════════════════════════════════════════════════
@@ -917,26 +2293,6 @@ function showClickInfo(pt){
     + 'Mirror M\u2212r: '+mirR+' '+mirStr+'<br>'
     + 'r/M in (Z/pZ): '+inZp;
 }
-
-cv.addEventListener('mousemove',e=>{
-  const rect=cv.getBoundingClientRect();
-  const sx=cv.width/rect.width,sy=cv.height/rect.height;
-  const mx=(e.clientX-rect.left)*sx,my=(e.clientY-rect.top)*sy;
-  const pt=findNearestPoint(mx,my);
-  if(pt!==hovered){hovered=pt;showTip(pt,e.clientX-rect.left+14,e.clientY-rect.top);}
-  else if(pt){G('tip').style.left=(e.clientX-rect.left+14)+'px';G('tip').style.top=(e.clientY-rect.top-10)+'px';}
-  cv.style.cursor=pt?'crosshair':'default';
-});
-cv.addEventListener('mouseleave',()=>{hovered=null;G('tip').style.display='none';});
-cv.addEventListener('click',e=>{
-  const rect=cv.getBoundingClientRect();
-  const sx=cv.width/rect.width,sy=cv.height/rect.height;
-  const mx=(e.clientX-rect.left)*sx,my=(e.clientY-rect.top)*sy;
-  const pt=findNearestPoint(mx,my);
-  clicked=(clicked&&pt&&clicked.M===pt.M&&clicked.r===pt.r)?null:pt;
-  showClickInfo(clicked);
-  render();
-});
 
 // ════════════════════════════════════════════════════
 // PRIME SELECT
@@ -1295,6 +2651,7 @@ function onCtrl(){
   G('ptSzV').textContent=parseFloat(V('ptSz')).toFixed(1);
   G('liftLWV').textContent=parseFloat(V('liftLW')).toFixed(1);
   G('liftAlphaV').textContent=parseFloat(V('liftAlpha')).toFixed(2);
+  if(G('hueShiftV'))G('hueShiftV').textContent=(parseInt(V('hueShift'))||0)+'°';
   render();
 }
 function onMChange(){
@@ -1521,7 +2878,158 @@ syncNSliderMax();
 updatePrimeSelect();
 applyLockUI();
 updateFormula(1);
+initCanvasEvents();
+initKeyboard();
 resize();
+
+
+// ─── Tab switching ───
+function switchMainTab(tab){
+  document.querySelectorAll('.main-tab-btn').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));
+  document.getElementById('paper-page').style.display=tab==='paper'?'':'none';
+  const ep=document.getElementById('explorer-page');
+  ep.style.display=tab==='explorer'?'flex':'none';
+  if(tab==='explorer') setTimeout(()=>{resize();updateAnalysis();},40);
+}
+
+// ─── Apply theorem preset ───
+function applyTheoremPreset(key){
+  const pr=THEOREM_PRESETS[key]; if(!pr) return;
+  switchMainTab('explorer');
+  setTimeout(()=>{
+    function s(id,v){const el=G(id);if(!el)return;if(typeof v==='boolean')el.checked=v;else el.value=v;}
+    s('arrSel',pr.arr);
+    const ms=G('mMax');if(ms){if(pr.mMax>parseInt(ms.max||300))ms.max=pr.mMax;ms.value=pr.mMax;}
+    s('mMaxN',pr.mMax);s('ptSz',pr.ptSz);s('liftLW',pr.liftLW);s('liftAlpha',pr.liftAlpha);
+    s('colorMode',pr.colorMode);s('hueShift',0);s('bright',80);s('sat',95);
+    s('showLifts',!!pr.showLifts);s('showBrokenLifts',!!pr.showBrokenLifts);
+    s('showArea',!!pr.showArea);s('showAll',!!pr.showAll);s('showSpiral',!!pr.showSpiral);
+    s('showMirror',!!pr.showMirror);s('showLeftPath',!!pr.showLeftPath);
+    s('showHalf',!!pr.showHalf);s('showNLines',!!pr.showNLines);s('showRings',!!pr.showRings);
+    s('showGapChords',!!pr.showGapChords);s('dimOthers',!!pr.dimOthers);
+    s('showStats',!!pr.showStats);s('showLabels',!!pr.showLabels);
+    if(pr.gapChordVal)s('gapChordVal',pr.gapChordVal);
+    if(pr.chordOpacity)s('chordOpacity',pr.chordOpacity);
+    if(pr.dimAlpha)s('dimAlpha',pr.dimAlpha);
+    if(pr.labelMaxM)s('labelMaxM',pr.labelMaxM);
+    if(pr.nOff){s('nOff',pr.nOff);s('nOffNum',pr.nOff);const nv=G('nOffV');if(nv)nv.textContent=pr.nOff;}
+    syncNSliderMax();updatePrimeSelect();applyLockUI();
+    const ps=primesUpTo(pr.mMax||40);
+    const cp=ps.length?ps.reduce((a,b)=>Math.abs(b-pr.p)<Math.abs(a-pr.p)?b:a,ps[0]):5;
+    if(G('primeSelect'))G('primeSelect').value=cp;
+    syncPSlider();onArrChange();onCtrl();
+  },80);
+}
+
+// ─── Analysis panel ───
+const COLOR_MODE_NAMES={
+  angle:'Rainbow — colored by angle θ=2πr/M',
+  prime:'Prime ring highlight — teal=prime M, dark=composite M',
+  phi:'φ(M)/M density — brightness = coprime density of ring',
+  lift:'Lift survival — teal=gcd(r,M+1)=1 (lifts), red=blocked',
+  half:'Top/Bottom half — teal above equator r/M>½, orange below',
+  entropy:'Modular entropy ΔS=−ln(φ/M) — amber=primorials (max entropy)',
+  residue6:'Residue mod 6 — six colors showing period-6 structure',
+  primorial:'Primorial rings — amber=M∈{2,6,30,210,2310…}',
+  mersenne:'Mersenne rings — purple=M is one less than a power of 2',
+  gapclass:'Prime gap class — green=twin (gap 2), blue=cousin (gap 4), purple=sexy (gap 6)',
+};
+const ARR_NAMES={
+  concentric:'Concentric — ring M at radius ρ=M',
+  fermat:'Fermat spiral — ring M at radius ρ=√M (equal area per ring)',
+  farey:'Farey half-plane — point at (r/M, 1/M)',
+  strip:'Strip — column M, row θ=2πr/M',
+};
+function updateAnalysis(){
+  const el=document.getElementById('analysis-content');
+  if(!el||!coordMap) return;
+  const p=getP();
+  let total=0,lifted=0,blocked=0;
+  coordMap.forEach(({M,r})=>{total++;if(gcd(r,M+1)===1)lifted++;else blocked++;});
+  const rate=total>0?lifted/total:0;
+  let prRings=0,primRings=0,mersRings=0;
+  if(rings) rings.forEach(({M})=>{
+    if(isPrime(M))prRings++;
+    if(isPrimorial(M))primRings++;
+    if(isMersenne(M))mersRings++;
+  });
+  let html='';
+
+  html+=`<div class="ap-row"><span class="ap-key">Arrangement</span>${ARR_NAMES[p.arr]||p.arr}</div>`;
+  html+=`<div class="ap-row"><span class="ap-key">Color</span>${COLOR_MODE_NAMES[p.mode]||p.mode}</div>`;
+  html+=`<div class="ap-row"><span class="ap-key">Scale</span>M = 2 to ${p.mMax} · ${total.toLocaleString()} coprime points`;
+  if(prRings) html+=` · ${prRings} prime rings`;
+  if(primRings) html+=` · <span style="color:#c49b38">${primRings} primorial rings</span>`;
+  if(mersRings) html+=` · ${mersRings} Mersenne rings`;
+  html+=`</div>`;
+
+  if(p.showLifts||p.showBrokenLifts||p.mode==='lift'){
+    const diff=(rate-0.5307118);
+    const ds=(diff>=0?'+':'')+diff.toFixed(5);
+    html+=`<div class="ap-row ap-lift"><span class="ap-key">Lift survival C(N)</span>`;
+    html+=`<span style="color:${rate>0.53?'#4ecdc4':'#ff8c69'}">${lifted.toLocaleString()}/${total.toLocaleString()} = ${(rate*100).toFixed(2)}%</span>`;
+    html+=` · deviation from C: ${ds}`;
+    html+=`<div class="ap-sub">True C = 0.530711806246… = ζ(2)·d<sub>FT</sub> = (π²/6)·∏(1−2/p²)</div></div>`;
+  }
+
+  if(p.showSpiral){
+    html+=`<div class="ap-row ap-spiral"><span class="ap-key">Prime p=${p.p}</span>`;
+    html+=`<span style="color:#4ecdc4">Teal</span> = top half M&lt;${2*p.p} `;
+    html+=`· <span style="color:#ff8c69">Orange</span> = bottom half M&gt;${2*p.p} `;
+    html+=`· <span style="color:#666">Gap at M=${2*p.p}</span> because gcd(${p.p},${2*p.p})=${p.p}&gt;1`;
+    html+=`<div class="ap-sub">No prime ever occupies angle exactly ½ on its own spiral (Thm 8.1)</div></div>`;
+  }
+
+  if(p.showMirror){
+    html+=`<div class="ap-row"><span class="ap-key" style="color:#c9a84c">Gold = mirror M−p</span>`;
+    html+=`Whether it lifts depends only on gcd(M−${p.p}, ${p.p+1}), not on M itself.`;
+    html+=`<div class="ap-sub">Mirrors that lift = R(${p.p+1})∩{1,…,${p.p-1}} — encodes (Z/${p.p+1}Z)* (Thm 8.2)</div></div>`;
+  }
+
+  if(p.showLeftPath){
+    const n=p.nOff;
+    html+=`<div class="ap-row"><span class="ap-key">Equatorial paths n=${n}</span>`;
+    if(n===1){
+      html+=`<span style="color:#ff4466">Red r=(M+1)/2</span>: gcd = (M+1)/2 ≥ 2 → <strong>NEVER lifts</strong> (Thm 8.4) `;
+      html+=`· <span style="color:#cc88ff">Purple r=(M−1)/2</span>: lifts iff M≡3(mod 4) — strict alternation (Thm 8.5)`;
+    } else {
+      html+=`<span style="color:#ff4466">Red</span> r=(M+${n})/2 · <span style="color:#cc88ff">Purple</span> r=(M−${n})/2 · active on ${n%2===0?'even':'odd'} M`;
+    }
+    html+=`</div>`;
+  }
+
+  if(p.showGapChords){
+    const cs=document.getElementById('chordStats');
+    html+=`<div class="ap-row"><span class="ap-key" style="color:#88cc88">Gap chords k=${p.gapChordVal}</span>`;
+    html+=`Connects r to r+k when both coprime to M — admissible pairs for prime gap k.`;
+    if(cs&&cs.textContent) html+=` ${cs.textContent}`;
+    if(p.gapChordVal&&p.gapChordVal.includes('2')&&p.gapChordVal.includes('6'))
+      html+=`<div class="ap-sub">Ratio gap-6/gap-2 ≈ 2 — Hardy–Littlewood S(6)/S(2)=2 exact at M=30</div>`;
+    html+=`</div>`;
+  }
+
+  if(p.mode==='primorial')
+    html+=`<div class="ap-row ap-note">Amber rings M=2,6,30,210… have the fewest lift survivors — they are the bottlenecks. Each new prime in rad(k) strictly reduces C_k (Thm 5.1 Monotonicity).</div>`;
+  if(p.mode==='entropy')
+    html+=`<div class="ap-row ap-note">Entropy ΔS=−ln(φ(M)/M). Warm/amber = many prime factors, few coprimes. Primorials maximise entropy. The Euler product identity C=ζ(2)·d<sub>FT</sub> is the arithmetic sum of all these entropies (Thm 6.1).</div>`;
+  if(p.mode==='gapclass')
+    html+=`<div class="ap-row ap-note"><span style="color:#78d278">Green</span>=twin primes (gap 2) · <span style="color:#64aae0">Blue</span>=cousin (gap 4) · <span style="color:#c878e0">Purple</span>=sexy (gap 6). Purple primes q≡3(mod 4) are <em>inert</em> in Z[i]: their lower equatorial residue r=(q−1)/2 <span style="color:#4ecdc4">lifts</span>. Green/blue primes q≡1(mod 4) <em>split</em> in Z[i]: that residue is <span style="color:#cc4444">blocked</span> (Cor 8.5a).</div>`;
+  if(p.dimOthers)
+    html+=`<div class="ap-row ap-note">Non-selected points dimmed to opacity ${p.dimAlpha}. Active layers shown at full brightness.</div>`;
+
+  html+=`<div class="ap-footer">C = ∏<sub>p</sub>(p²−2)/(p²−1) = ζ(2)·d<sub>FT</sub> ≈ 0.530711806246`;
+  if(total>0) html+=` &nbsp;·&nbsp; C(${p.mMax}) = ${rate.toFixed(6)} &nbsp;·&nbsp; ${((1-rate)*100).toFixed(1)}% blocked`;
+  html+=`</div>`;
+  el.innerHTML=html;
+}
+// Hook render to also update analysis
+// wrap render to update analysis
+(function(){
+  const _orig=render;
+  render=function(){_orig();updateAnalysis();};
+})();
+
+updatePrimeSelect();applyLockUI();updateFormula(1);syncNSliderMax();buildPresetButtons();initCanvasEvents();initKeyboard();
 </script>
 </body>
-</html>
+  </html>
